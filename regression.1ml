@@ -39,7 +39,8 @@ AmateurOptics = {
   ;; NOTE: It is important that the following do not have more type annotations,
   ;; because the bug that this triggered was due to treatment of inferred types.
 
-  (<-<) (l1: lens _ _ _ _, l2: lens _ _ _ _) (F: FUNCTOR) toF = l1 F (l2 F toF);
+  (<-<) (l1: lens _ _ _ _) (l2: lens _ _ _ _) (F: FUNCTOR) toF =
+    l1 F (l2 F toF);
 
   e1 (F: FUNCTOR) abF (l, r) = F.map (fun l => (l, r)) (abF l);
 
