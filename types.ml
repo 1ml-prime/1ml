@@ -803,16 +803,15 @@ let rec print_typ' prec ctxt = function
     )
   | AppT(t, []) ->
     print_typ' prec ctxt t
-  | AppT(t, [t1]) ->
+  | AppT(t, ts) ->
     print_paren app_prec prec (fun () ->
       print_typ' app_prec ctxt t;
-      print_string "(";
-      print_break 0 2;
-      print_typ' base_prec ctxt t1;
-      print_string ")"
+      List.iter
+        (fun t ->
+          print_break 1 0;
+          print_typ' (app_prec + 1) ctxt t)
+        ts
     )
-  | AppT(t, t1::ts) ->
-    print_typ' prec ctxt (AppT(AppT(t, [t1]), ts))
   | TupT(tr) ->
     print_brack "{" "}" (fun () ->
       print_row' "=" print_typ' base_prec ctxt tr;
