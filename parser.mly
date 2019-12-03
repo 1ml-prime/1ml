@@ -203,6 +203,16 @@ dec :
     { SeqD($1, $3)@@at() }
 ;
 
+dotpathexp :
+  | atpathexp
+    { $1 }
+  | dotpathexp DOT label
+    { DotE($1, $3)@@at() }
+  | dotpathexp DOT AT attyp
+    { unrollE($1, $4)@@at() }
+  | dotpathexp DOT AT name
+    { unrollE($1, PathT(VarE($4)@@ati 4)@@ati 4)@@at() }
+;
 atpathexp :
   | name
     { VarE($1)@@at() }
@@ -210,20 +220,14 @@ atpathexp :
     { TypE(HoleT@@at())@@at() }
 ;
 apppathexp :
-  | atpathexp
+  | dotpathexp
     { $1 }
-  | apppathexp atexp
+  | apppathexp dotexp
     { appE($1, $2)@@at() }
-  | apppathexp DOT label
-    { DotE($1, $3)@@at() }
   | AT attyp atexp
     { rollE($3, $2)@@at() }
   | AT name atexp
     { rollE($3, PathT(VarE($2)@@ati 2)@@ati 2)@@at() }
-  | apppathexp DOT AT attyp
-    { unrollE($1, $4)@@at() }
-  | apppathexp DOT AT name
-    { unrollE($1, PathT(VarE($4)@@ati 4)@@ati 4)@@at() }
 ;
 infpathexp :
   | apppathexp
@@ -238,6 +242,16 @@ pathexp :
     { $1 }
 ;
 
+dotexp :
+  | atexp
+    { $1 }
+  | dotexp DOT label
+    { DotE($1, $3)@@at() }
+  | dotexp DOT AT attyp
+    { unrollE($1, $4)@@at() }
+  | dotexp DOT AT name
+    { unrollE($1, PathT(VarE($4)@@ati 4)@@ati 4)@@at() }
+;
 atexp :
   | name
     { VarE($1)@@at() }
@@ -265,20 +279,14 @@ atexp :
     { dotopE($3)@@at() }
 ;
 appexp :
-  | atexp
+  | dotexp
     { $1 }
-  | appexp atexp
+  | appexp dotexp
     { appE($1, $2)@@at() }
-  | appexp DOT label
-    { DotE($1, $3)@@at() }
   | AT attyp atexp
     { rollE($3, $2)@@at() }
   | AT name atexp
     { rollE($3, PathT(VarE($2)@@ati 2)@@ati 2)@@at() }
-  | appexp DOT AT attyp
-    { unrollE($1, $4)@@at() }
-  | appexp DOT AT name
-    { unrollE($1, PathT(VarE($4)@@ati 4)@@ati 4)@@at() }
 ;
 infexp :
   | appexp
