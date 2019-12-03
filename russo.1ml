@@ -27,8 +27,8 @@ ArraySucc (A : ARRAY) =
   sub (a : array _) i = A.sub (if i % 2 == 0 then a.1 else a.2) (i / 2);
   update (a : array _) i x =
     if i % 2 == 0
-    then (A.update (a.1) (i / 2) x, a.2)
-    else (a.1, A.update (a.2) (i / 2) x);
+    then (A.update a.1 (i / 2) x, a.2)
+    else (a.1, A.update a.2 (i / 2) x);
 };
 
 MkArray = rec (mkArray : int -> ARRAY) => fun n =>
@@ -42,14 +42,14 @@ printArray 't (A : ARRAY) (pr : t -> ()) a =
 
 A32 = MkArray 5;
 a = A32.new 0;
-do printArray A32 (Int.print) a;
+do printArray A32 Int.print a;
 a = A32.update a 17 1;
 a = A32.update a 11 2;
 a = A32.update a 15 3;
 a = A32.update a 27 4;
 a = A32.update a 1 5;
 a = A32.update a 0 6;
-do printArray A32 (Int.print) a;
+do printArray A32 Int.print a;
 
 
 
@@ -71,10 +71,10 @@ divides k n =
 sift (S : STREAM) :> STREAM =
 {
   type state = S.state;
-  divisor = S.value (S.start);
+  divisor = S.value S.start;
   filter = rec filter => fun s =>
     if divides divisor (S.value s) then filter (S.next s) else s;
-  start = filter (S.start);
+  start = filter S.start;
   next s = filter (S.next s);
   value = S.value;
 };
@@ -90,7 +90,7 @@ Sieve :> STREAM =
     value s = s;
   } : state;
   next (s : state) = let S = unwrap s : state in wrap sift S : state;
-  value (s : state) = let S = unwrap s : state in S.value (S.start);
+  value (s : state) = let S = unwrap s : state in S.value S.start;
 };
 
 nthstate = rec (nthstate : int -> Sieve.state) => fun n =>
