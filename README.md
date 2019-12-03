@@ -167,6 +167,7 @@ A ::=
 
 (declarations)
 D ::= ...
+    ...T                            ~> include T
     X A1 ... An : T                 ~> X : A1 -> ... -> An -> T
     X A1 ... An = E                 ~> X : A1 -> ... -> An -> (= E)
     type X A1 ... An                ~> X : A1 => ... => An => type
@@ -210,6 +211,7 @@ P ::=
 
 (bindings)
 B ::= ...
+    ...E                            ~> include E
     X                               ~> X = X
     P = E                           ~> local $ = E in P end
     X A1 ... An = E                 ~> X = fun A1 ... An => E

@@ -77,6 +77,7 @@ rule token = parse
   | "if" { IF }
   | "in" { IN }
   | "include" { INCLUDE }
+  | "..." { INCLUDE }
   | "let" { LET }
   | "local" { LOCAL }
   | "or" { OR }
