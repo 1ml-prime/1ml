@@ -93,8 +93,8 @@ H = fun (a : type) => (type {x : a} :> type);
 f (id : (a : type) => a -> a) = {x = id int 5; y = id bool true};
 
 type SHAPE = {type t; area : t -> int; v : t};
-volume (height : int) (s : SHAPE) = height * s.area (s.v);
-area ss = List.foldl ss 0 (fun a (wrap s : wrap SHAPE) => a + s.area (s.v));
+volume (height : int) (s : SHAPE) = height * s.area s.v;
+area ss = List.foldl ss 0 (fun a (wrap s : wrap SHAPE) => a + s.area s.v);
 
 type COLL c =
 {
@@ -248,27 +248,27 @@ FirstClassImplicit =
 id : 'a => a -> a = fun x => x;
 G (x : int) = {M = {type t = int; v = x} :> {type t; v : t}; f = id id};
 C = G 3;
-;; x = C.f (C.M.v);  ;; error
+;; x = C.f C.M.v;  ;; error
 
 ;; ...works with pure 'id' function:
 id = fun x => x;
 G (x : int) = {M = {type t = int; v = x} :> {type t; v : t}; f = id id};
 C = G 3;
-x = C.f (C.M.v);
+x = C.f C.M.v;
 
 ;; ...or with type annotation:
 id : 'a => a -> a = fun x => x;
 G (x : int) = {M = {type t = int; v = x} :> {type t; v : t}; f : M.t -> M.t = id id};
 C = G 3;
-x = C.f (C.M.v);
+x = C.f C.M.v;
 
 ;; ...or when applying G twice.
 id : 'a => a -> a = fun x => x;
 G (x : int) = {M = {type t = int; v = x} :> {type t; v : t}; f = id id};
 C = G 3;
 C' = G 3;
-x = C'.f (C.M.v);
-;; x = C.f (C'.M.v);  ;; but this is an error
+x = C'.f C.M.v;
+;; x = C.f C'.M.v;  ;; but this is an error
 
 
 ;; Appendix C: Impredicativity
