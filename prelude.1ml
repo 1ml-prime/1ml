@@ -5,8 +5,8 @@ Fun =
   bot = rec bot => fun x => bot x;
   id x = x;
   const x y = x;
-  (>>) (f, g) x = g (f x);
-  (<<) (f, g) x = f (g x);
+  (>>) f g x = g (f x);
+  (<<) f g x = f (g x);
   curry f x y = f (x, y);
   uncurry f (x, y) = f x y;
 };
@@ -29,8 +29,8 @@ true = Bool.true;
 false = Bool.false;
 not = Bool.not;
 
-(==) 'a (x : a, y : a) = primitive "==" a (x, y);
-(<>) 'a (x : a, y : a) = not (x == y);
+(==) 'a (x : a) (y : a) = primitive "==" a (x, y);
+(<>) 'a (x : a) (y : a) = not (x == y);
 
 
 ;; Int
@@ -39,15 +39,15 @@ Int =
 {
   type int = primitive "int";
   type t = int;
-  (+) = primitive "Int.+";
-  (-) = primitive "Int.-";
-  (*) = primitive "Int.*";
-  (/) = primitive "Int./";
-  (%) = primitive "Int.%";
-  (<) = primitive "Int.<";
-  (>) = primitive "Int.>";
-  (<=) = primitive "Int.<=";
-  (>=) = primitive "Int.>=";
+  (+) l r = primitive "Int.+" (l, r);
+  (-) l r = primitive "Int.-" (l, r);
+  (*) l r = primitive "Int.*" (l, r);
+  (/) l r = primitive "Int./" (l, r);
+  (%) l r = primitive "Int.%" (l, r);
+  (<) l r = primitive "Int.<" (l, r);
+  (>) l r = primitive "Int.>" (l, r);
+  (<=) l r = primitive "Int.<=" (l, r);
+  (>=) l r = primitive "Int.>=" (l, r);
   print = primitive "Int.print";
 };
 type int = Int.t;
@@ -81,11 +81,11 @@ Text =
 {
   type text = primitive "text";
   type t = text;
-  (++) = primitive "Text.++";
-  (<) = primitive "Text.<";
-  (>) = primitive "Text.>";
-  (<=) = primitive "Text.<=";
-  (>=) = primitive "Text.>=";
+  (++) l r = primitive "Text.++" (l, r);
+  (<) l r = primitive "Text.<" (l, r);
+  (>) l r = primitive "Text.>" (l, r);
+  (<=) l r = primitive "Text.<=" (l, r);
+  (>=) l r = primitive "Text.>=" (l, r);
   length t = primitive "Text.length" t;
   sub t i = primitive "Text.sub" (t, i);
   fromChar c = primitive "Text.fromChar" c;
@@ -198,7 +198,7 @@ include List;
 type ORD =
 {
   type t;
-  (<=) : (t, t) -> bool;
+  (<=) : t => t -> bool;
 };
 
 type SET =
