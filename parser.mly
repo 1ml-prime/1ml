@@ -231,7 +231,7 @@ infpathexp :
   | sym apppathexp
     { appE(VarE($1)@@ati(1), $2)@@at() }
   | infpathexp sym apppathexp
-    { appE(VarE($2)@@ati(2), tupE[$1; $3]@@at())@@at() }
+    { appE(appE(VarE($2)@@ati(2), $1)@@at(), $3)@@at() }
 ;
 pathexp :
   | infpathexp
@@ -286,7 +286,7 @@ infexp :
   | sym appexp
     { appE(VarE($1)@@ati(1), $2)@@at() }
   | infexp sym appexp
-    { appE(VarE($2)@@ati(2), tupE[$1; $3]@@at())@@at() }
+    { appE(appE(VarE($2)@@ati(2), $1)@@at(), $3)@@at() }
   | infexp OR appexp
     { orE($1, $3)@@at() }
   | infexp AND appexp
