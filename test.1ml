@@ -151,8 +151,8 @@ List :> LIST =
   isNil xs = foldr xs true (fun _ _ => false);
   head xs = foldr xs none (fun x _ => some x);
   tail xs =
-    foldr xs (nil, none)
-      (fun x (acc : (_, _)) => (cons x (acc.1), some (acc.1))) .2;
+    (foldr xs (nil, none)
+      (fun x (acc : (_, _)) => (cons x acc.1, some acc.1)) ).2;
   caselist xs n c =
     caseopt (head xs) n (fun x => caseopt (tail xs) n (fun xs' => c x xs'));
   length xs = foldr xs 0 (fun _ n => n + 1);
@@ -161,9 +161,9 @@ List :> LIST =
   map xs f = foldr xs nil (fun x => cons (f x));
   foldl xs x f = foldr (rev xs) x (fun x y => f y x);
   nth xs n =
-    foldr xs (length xs - 1, none) (fun x (p : (_, _)) =>
+    (foldr xs (length xs - 1, none) (fun x (p : (_, _)) =>
       (p.1 - 1, if p.1 == n then some x else p.2)
-    ) .2;
+    ) ).2;
 };
 (;
 List :> LIST =
@@ -178,10 +178,10 @@ List :> LIST =
     foldr a (opt a) xs (none a) (fun (x : a) (_ : opt a) => some a x);
   tail a (xs : list a) =
     let type t = (list a, opt (list a)) in
-    foldr a t xs
+    (foldr a t xs
       (nil a, none (list a))
-      (fun (x : a) (acc : t) => (cons a x (acc.1), some (list a) (acc.1)))
-    .2;
+      (fun (x : a) (acc : t) => (cons a x acc.1, some (list a) acc.1))
+    ).2;
   caselist a b (xs : list a) (n : b) (c : a -> list a -> b) =
     caseopt a b (head a xs)
       n
@@ -201,10 +201,10 @@ List :> LIST =
     foldr a b (rev a xs) x (fun (x : a) (y : b) => f y x);
   nth a (xs : list a) (n : int) =
     let (==) = equal int in
-    foldr a (type (int, opt a)) xs (length a xs - 1, none a)
+    (foldr a (type (int, opt a)) xs (length a xs - 1, none a)
       (fun (x : a) (p : (int, opt a)) =>
         (p.1 - 1, if p.1 == n then some a x else p.2 : opt a))
-    .2;
+    ).2;
 };
 ;)
 
@@ -269,7 +269,7 @@ do log "Tests";
 TestSetAndMap =
 {
   S = Set Int;
-  s = S.add 3 (S.add 5 (S.empty));
+  s = S.add 3 (S.add 5 S.empty);
   do Bool.print (S.mem 5 s); do print "\n";
 };
 
@@ -286,9 +286,9 @@ in
     y2 = g () : list t;
     y3 = g () : list u;
   };
-  y = G(type bool).y;
-  y1 = G(type bool).y : list int;
-  y2 = G(type bool).y : list bool;
+  y = (G(type bool)).y;
+  y1 = (G(type bool)).y : list int;
+  y2 = (G(type bool)).y : list bool;
   M = G(type bool);
 ;;  y3 = M.y : list (M.u);
 end;
