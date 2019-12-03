@@ -174,8 +174,8 @@ List :> LIST =
   isNil xs = foldr xs true (fun _ _ => false);
   head xs = foldr xs none (fun x _ => some x);
   tail xs =
-    foldr xs (nil, none)
-      (fun x (acc : (_, _)) => (cons x (acc.1), some (acc.1))) .2;
+    (foldr xs (nil, none)
+      (fun x (acc : (_, _)) => (cons x acc.1, some acc.1)) ).2;
   caselist xs n c =
     caseopt (head xs) n (fun x => caseopt (tail xs) n (fun xs' => c x xs'));
   length xs = foldr xs 0 (fun _ n => n + 1);
@@ -185,9 +185,9 @@ List :> LIST =
   foldl xs x f = foldr (rev xs) x (fun x y => f y x);
   filter xs f = foldr xs nil (fun x ys => if f x then cons x ys else ys);
   nth xs n =
-    foldr xs (length xs - 1, none) (fun x (p : (_, _)) =>
+    (foldr xs (length xs - 1, none) (fun x (p : (_, _)) =>
       (p.1 - 1, if p.1 == n then some x else p.2)
-    ) .2;
+    ) ).2;
 };
 
 include List;
