@@ -622,9 +622,9 @@ let rec string_of_typ' prec = function
     )
   | AppT(t, ts) ->
     paren app_prec prec (
-      string_of_typ' app_prec t ^
-      String.concat ""
-        (List.map (fun t' -> "(" ^ string_of_typ' base_prec t' ^ ")") ts)
+      string_of_typ' app_prec t ^ " " ^
+      String.concat " "
+        (List.map (fun t' -> string_of_typ' (app_prec + 1) t') ts)
     )
   | TupT(tr) -> "{" ^ string_of_row' " = " string_of_typ' base_prec tr ^ "}"
   | DotT(t, l) ->
