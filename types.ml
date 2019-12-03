@@ -570,8 +570,8 @@ let rec string_of_typ_sort = function
 let base_prec = 0
 let binder_prec = 1
 let app_prec = 2
-let dot_prec = 2
-let atom_prec = 2
+let dot_prec = 3
+let atom_prec = 3
 
 let paren my_prec required_prec s =
     if my_prec < required_prec then "(" ^ s ^ ")" else s
