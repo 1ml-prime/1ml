@@ -18,8 +18,8 @@ not = Bool.not;
 
 do log "Toplevel";
 
-(==) 'a (x : a, y : a) = primitive "==" a (x, y);
-(<>) 'a (x : a, y : a) = not (x == y);
+(==) 'a (x : a) (y : a) = primitive "==" a (x, y);
+(<>) 'a (x : a) (y : a) = not (x == y);
 
 do log "Int";
 
@@ -27,13 +27,13 @@ Int =
 {
   type int = primitive "int";
   type t = int;
-  (+) = primitive "Int.+";
-  (-) = primitive "Int.-";
-  (*) = primitive "Int.*";
-  (<) = primitive "Int.<";
-  (>) = primitive "Int.>";
-  (<=) = primitive "Int.<=";
-  (>=) = primitive "Int.>=";
+  (+) l r = primitive "Int.+" (l, r);
+  (-) l r = primitive "Int.-" (l, r);
+  (*) l r = primitive "Int.*" (l, r);
+  (<) l r = primitive "Int.<" (l, r);
+  (>) l r = primitive "Int.>" (l, r);
+  (<=) l r = primitive "Int.<=" (l, r);
+  (>=) l r = primitive "Int.>=" (l, r);
   print = primitive "Int.print";
 };
 type int = Int.t;
@@ -63,11 +63,11 @@ Text =
 {
   type text = primitive "text";
   type t = text;
-  (++) = primitive "Text.++";
-  (<) = primitive "Text.<";
-  (>) = primitive "Text.>";
-  (<=) = primitive "Text.<=";
-  (>=) = primitive "Text.>=";
+  (++) l r = primitive "Text.++" (l, r);
+  (<) l r = primitive "Text.<" (l, r);
+  (>) l r = primitive "Text.>" (l, r);
+  (<=) l r = primitive "Text.<=" (l, r);
+  (>=) l r = primitive "Text.>=" (l, r);
   length t = primitive "Text.length" t;
   sub t i = primitive "Text.sub" (t, i);
   fromChar c = primitive "Text.fromChar" c;
@@ -215,7 +215,7 @@ do log "Set";
 type ORD =
 {
   type t;
-  (<=) : (t, t) -> bool;
+  (<=) : t => t -> bool;
 };
 
 type SET =
