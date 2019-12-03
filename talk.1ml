@@ -124,7 +124,7 @@ newpoint = rec (newpoint : int -> int -> point) => fun x y =>
 };
 
 p = newpoint 3 4;
-p' = p.move 1 2 .@recpoint;
+p' = (p.move 1 2).@recpoint;
 do Int.print (p'.getX ());
 do print " ";
 do Int.print (p'.getY ());
