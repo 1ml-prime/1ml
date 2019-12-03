@@ -135,7 +135,7 @@ do print "\n";
 
 ;; couple of dummies...
 datasize = 117;
-OrderedMap = Map {include Int; eq = curry (==)} :> MAP;
-HashMap = Map {include Int; eq = curry (==)} :> MAP;
+OrderedMap = Map {include Int; eq = (==)} :> MAP;
+HashMap = Map {include Int; eq = (==)} :> MAP;
 
 Map = if datasize <= 100 then OrderedMap else HashMap : MAP;
