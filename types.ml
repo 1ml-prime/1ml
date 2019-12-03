@@ -720,8 +720,9 @@ let rec print_list' print' prec ctxt xs =
   ) xs
 
 let rec print_row' sep print' prec ctxt xr =
+  let nm1 = List.length xr - 1 in
   open_hvbox 0;
-  List.iter (fun (l, x) ->
+  List.iteri (fun i (l, x) ->
     open_hovbox 0;
     print_string l;
     print_string " ";
@@ -729,10 +730,10 @@ let rec print_row' sep print' prec ctxt xr =
     print_break 1 2;
     open_hovbox 0;
     print' prec (enter l ctxt) x;
-    print_string ";";
+    if i <> nm1 then print_string ";";
     close_box ();
     close_box ();
-    print_break 1 0;
+    if i <> nm1 then print_break 1 0;
   ) xr;
   close_box ()
 
