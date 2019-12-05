@@ -179,7 +179,7 @@ E ::= ...
     E.i                             ~> E._i
     fun P => E                      ~> fun ($ : TP) => let P in E  [2]
     fun A1 ... An => E              ~> fun A1 => ... => fun An => E
-    (.X)                            ~> fun Y => Y.X
+    (.X)                            ~> fun (X: {X: _}) => X.X
     (SYM)                           ~> SYM
     E1 SYM E2                       ~> (SYM) (E1, E2)  [3]
     if E1 then E2 else E3           ~> if E1 then E2 else E3 : _
