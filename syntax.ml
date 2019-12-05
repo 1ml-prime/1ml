@@ -203,7 +203,8 @@ let sealE(e, t) =
   unwrapE(wrapE(e, WrapT(t)@@t.at)@@span[e.at; t.at], WrapT(t)@@t.at)
 
 let dotopE(x) =
-  FunE("x"@@x.at, HoleT@@x.at, DotE(VarE("x"@@x.at)@@x.at, x)@@x.at, Expl@@x.at)
+  FunE("x"@@x.at, StrT(VarD(x, HoleT@@x.at)@@x.at)@@x.at,
+    DotE(VarE("x"@@x.at)@@x.at, x)@@x.at, Expl@@x.at)
 
 
 let recT(p, t2) =
