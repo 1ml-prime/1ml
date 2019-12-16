@@ -1,0 +1,26 @@
+language: minimal
+
+matrix:
+  include:
+    - os: linux
+      dist: bionic
+      addons:
+        apt:
+          packages:
+            - ocaml
+    - os: osx
+      osx_image: xcode11.2
+      addons:
+        homebrew:
+          packages:
+            - ocaml
+
+git:
+  depth: 5
+  submodules: false
+
+before_install:
+  - export -f travis_nanoseconds travis_time_start travis_time_finish
+
+script:
+  - ./travis.sh
