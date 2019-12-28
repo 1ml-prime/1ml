@@ -21,5 +21,5 @@ fi
 folded "Build 1ML" make
 
 for f in *.1ml; do
-  folded "$f" ./1ml prelude.1ml "$f"
+  folded "$f" ./1ml -c prelude.1ml "$f"
 done
