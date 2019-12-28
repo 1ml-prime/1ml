@@ -21,3 +21,24 @@ Equivalence: {
   symmetry 'a 'b (eq: t a b) : t b a =
     wr (fun (type p _) => un eq (fun (type b) => type p b -> p a) id);
 };
+
+Hungry = {
+  type eat a = rec eat_a => a -> eat_a;
+
+  eater 'a: eat a = rec (eater: eat a) => @(eat a) (fun a => eater);
+
+  (<+) eater x = eater.@(eat _) x;
+
+  do eater <+ 1 <+ 2;
+};
+
+PolyRec = {
+  type l a = rec (type t) => alt a t;
+  t = rec (type t a) => fun (type a) => alt a (t (type (a, a)));
+
+  t_int = t int;
+
+  hmm (x: t int) = casealt (x.@(t int));
+
+  t0 = @(t int) (right (@(t (type (int, int))) (left (0, 0))));
+};

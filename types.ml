@@ -331,6 +331,7 @@ let rec norm_typ = function
   | TypT(s) -> TypT(norm_extyp s)
   | WrapT(s) -> WrapT(norm_extyp s)
   | LamT(aks, t) -> LamT(aks, norm_typ t)
+  | AppT(t, []) -> norm_typ t
   | AppT(t, ts) ->
     (match norm_typ t with
     | LamT(aks, t') -> norm_typ (subst_typ (subst aks ts) t')
