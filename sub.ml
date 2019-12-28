@@ -141,6 +141,10 @@ let rec sub_typ env t1 t2 ps =
       ts, zs,
       IL.TupE(List.map2 (fun (l, _) f -> l, IL.AppE(f, IL.DotE(e1, l))) tr2 fs)
 
+    | TupT(tr1), TupT(tr2) ->
+      let zs = equal_row env tr1 tr2 ps in
+      [], zs, e1
+
     | FunT(aks1, t11, s1, Explicit p1), FunT(aks2, t21, s2, Explicit p2) ->
       if p1 = Impure && p2 = Pure then raise (Sub (FunEffect(p1, p2)));
       let env' = add_typs aks2 env in
@@ -175,6 +179,17 @@ let rec sub_typ env t1 t2 ps =
       let zs = try equal_typ env t1' t2' with Sub e ->
         raise (Sub (Mismatch(t1, t2))) in
       [], zs, e1
+
+    | LamT(aks1, t1'), LamT(aks2, t2') ->
+      if List.length aks1 <> List.length aks2 ||
+         List.exists2 (fun ak1 ak2 -> snd ak1 <> snd ak2) aks1 aks2 then
+        raise (Sub (Mismatch(t1, t2)));
+      let zs = try
+          equal_typ (add_typs aks2 env)
+            (subst_typ (subst aks1 (varTs aks2)) t1') t2'
+        with Sub e ->
+          raise (Sub (Mismatch(t1, t2)))
+      in [], lift env zs, e1
 
     | RecT(ak1, t1'), RecT(ak2, t2') ->
       if snd ak1 <> snd ak2 then
@@ -308,4 +323,11 @@ and equal_extyp env s1 s2 =
     try sub_extyp env s1 s2 [] with Sub e -> raise (Sub (Left e)) in
   let _, zs2, _ =
     try sub_extyp env s2 s1 [] with Sub e -> raise (Sub (Right e)) in
+  zs1 @ zs2
+
+and equal_row env tr1 tr2 ps =
+  let _, zs1, _ =
+    try sub_row env tr1 tr2 ps with Sub e -> raise (Sub (Left e)) in
+  let _, zs2, _ =
+    try sub_row env tr2 tr1 ps with Sub e -> raise (Sub (Right e)) in
   zs1 @ zs2
