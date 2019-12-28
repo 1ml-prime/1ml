@@ -50,3 +50,117 @@ type_error {
   Impure : () => {type t; existentials: t} = fun () =>
     {type t = bool; existentials = true} :> {type t = bool; existentials: t};
 };
+
+;;
+
+Mutually = {
+  T = rec (R: {
+    Even: {type t _};
+    Odd: {type t _};
+  }) => {
+    Even = {
+      type t x = {head: x; tail: R.Odd.t x};
+    };
+    Odd = {
+      type t x = opt (R.Even.t x);
+    };
+  };
+
+  V = rec (R: {
+    Even: {
+      make 'x: x => T.Odd.t x => T.Even.t x;
+      size 'x: T.Even.t x -> int;
+    };
+    Odd: {
+      make 'x: opt (T.Even.t x) => T.Odd.t x;
+      size 'x: T.Odd.t x -> int;
+    };
+  }) => {
+    Even = {
+      make 'x (head: x) (tail: T.Odd.t x) : T.Even.t x =
+        @(T.Even.t x) {head; tail};
+      size 'x (v: T.Even.t x) = 1 + R.Odd.size v.@(T.Even.t _).tail;
+    };
+    Odd = {
+      make 'x (v: opt (T.Even.t x)) : T.Odd.t x = @(T.Odd.t x) v;
+      size 'x (v: T.Odd.t x) =
+        caseopt v.@(T.Odd.t x)
+          (fun () => 0)
+          (fun e => R.Even.size e);
+    };
+  };
+};
+
+Mutually = {
+  Even = {...Mutually.T.Even; ...Mutually.V.Even};
+  Odd = {...Mutually.T.Odd; ...Mutually.V.Odd};
+
+  one = Odd.size (Odd.make (some (Even.make true (Odd.make none))));
+};
+
+;;
+
+Hungry = {
+  type eat a = rec eat_a => a -> eat_a;
+
+  eater 'a: eat a = rec (eater: eat a) => @(eat a) (fun a => eater);
+
+  (<+) eater x = eater.@(eat _) x;
+
+  do eater <+ 1 <+ 2;
+};
+
+PolyRec = {
+  type l a = rec (type t) => alt a t;
+  ...rec {type t a} => {type t a = alt a (t (type (a, a)))};
+
+  t_int = t int;
+
+  hmm (x: t int) = casealt (x.@(t int));
+
+  t0 = @(t int) (right (@(t (type (int, int))) (left (0, 0))));
+};
+
+N :> {
+  type Z;
+  type S _;
+} = {
+  type Z   = {};
+  type S _ = {};
+};
+
+ListN = let
+  type I (type x) (type p _) (type t _ _) = {
+    nil     :               p N.Z;
+    (::) 'n : x -> t x n -> p (N.S n);
+  };
+  type T x n (type t _ _) = (type p _) => I x p t -> p n;
+in {
+  ...rec {type t _ _} => {type t x n = wrap T x n t};
+
+  case 'x 'n (type p _) (cs: I x p t) e =
+    (unwrap e.@(t _ _): wrap T x n t) p cs;
+
+  local
+    mk 'x 'n (c: T x n t) = @(t x n) (wrap c: wrap T x n t);
+  in
+    nil  'x                       = mk (fun (type p _) (r: I x p t) => r.nil);
+    (::) 'x 'n (v: x) (vs: t x n) = mk (fun (type p _) (r: I x p t) => r.:: v vs);
+  end;
+} :> {
+  type t _ _;
+
+  case 'x 'n: (type p _) => I x p t => t x n -> p n;
+
+  nil  'x    :               t x N.Z;
+  (::) 'x 'n : x => t x n => t x (N.S n);
+};
+
+ListN = {
+  ...ListN;
+  map 'x 'y (xy: x -> y) = rec (map: 'n => t x n -> t y n) =>
+    case (t _) {
+      nil;
+      (::) x xs = xy x :: map xs;
+    };
+};
