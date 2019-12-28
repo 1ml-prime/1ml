@@ -122,6 +122,27 @@ and paths_row ta ps = function
     ts1 @ ts2
 
 
+let rec_from_extyp typ label s =
+  match s with
+  | ExT([], t) ->
+    let rec find_rec = function
+      | AppT(t, ts) ->
+        let rec_t, unroll_t, roll_t, ak = find_rec t in
+        rec_t, AppT(unroll_t, ts), AppT(roll_t, ts), ak
+      | RecT(ak, unroll_t) as rec_t ->
+        rec_t, unroll_t, rec_t, ak
+      | DotT(t, lab) ->
+        let rec_t, unroll_t, roll_t, ak = find_rec t in
+        rec_t, DotT(unroll_t, lab), DotT(roll_t, lab), ak
+      | _ ->
+        error typ.at ("non-recursive type for " ^ label ^ ":"
+                      ^ " " ^ Types.string_of_extyp s) in
+    find_rec t
+  | _ ->
+    error typ.at ("non-recursive type for " ^ label ^ ":"
+                  ^ " " ^ Types.string_of_extyp s)
+
+
 (* Instantiation *)
 
 let rec instantiate env t e =
@@ -386,15 +407,18 @@ Trace.debug (lazy ("[FunE] env =" ^ VarSet.fold (fun a s -> s ^ " " ^ a) (domain
 
   | EL.RollE(var, typ) ->
     let s, zs1 = elab_typ env typ l in
-    let t, ak, t' =
-      match s with
-      | ExT([], (RecT(ak, t') as t)) -> t, ak, t'
-      | _ -> error typ.at "non-recursive type for rolling" in
+    let rec_t, unroll_t, roll_t, ak = rec_from_extyp typ "rolling" s in
+    let var_t = lookup_var env var in
+    let unroll_t = subst_typ (subst [ak] [rec_t]) unroll_t in
     let _, zs2, f =
-      try sub_typ env (lookup_var env var) (subst_typ (subst [ak] [t]) t') []
-      with Sub e -> error var.at ("rolled value does not match annotation") in
-    ExT([], t), Pure, zs1 @ zs2,
-    IL.RollE(IL.AppE(f, IL.VarE(var.it)), erase_typ t)
+      try sub_typ env var_t unroll_t []
+      with Sub e ->
+        error var.at ("rolled value does not match annotation:"
+                      ^ " " ^ Types.string_of_typ var_t ^ " "
+                      ^ "<"
+                      ^ " " ^ Types.string_of_typ unroll_t) in
+    ExT([], roll_t), Pure, zs1 @ zs2,
+    IL.RollE(IL.AppE(f, IL.VarE(var.it)), erase_typ roll_t)
 
   | EL.IfE(var, exp1, exp2, typ) ->
     let t0, zs0, ex = elab_instvar env var in
@@ -488,13 +512,15 @@ Trace.debug (lazy ("[UnwrapE] s2 = " ^ string_of_norm_extyp s2));
 
   | EL.UnrollE(var, typ) ->
     let s, zs1 = elab_typ env typ l in
-    let t, ak, t' =
-      match s with
-      | ExT([], (RecT(ak, t') as t)) -> t, ak, t'
-      | _ -> error typ.at "non-recursive type for rolling" in
-    let _, zs2, f = try sub_typ env (lookup_var env var) t [] with Sub e ->
-      error var.at ("unrolled value does not match annotation") in
-    ExT([], subst_typ (subst [ak] [t]) t'), Pure, zs1 @ zs2,
+    let rec_t, unroll_t, roll_t, ak = rec_from_extyp typ "unrolling" s in
+    let var_t = lookup_var env var in
+    let _, zs2, f = try sub_typ env var_t roll_t [] with Sub e ->
+      error var.at ("unrolled value does not match annotation:"
+                    ^ "  " ^ Types.string_of_typ var_t ^ " "
+                    ^ "<"
+                    ^ "  " ^ Types.string_of_typ roll_t) in
+    let unroll_t = subst_typ (subst [ak] [rec_t]) unroll_t in
+    ExT([], unroll_t), Pure, zs1 @ zs2,
     IL.UnrollE(IL.AppE(f, IL.VarE(var.it)))
 
   | EL.RecE(var, typ, exp1) ->
