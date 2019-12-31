@@ -42,3 +42,45 @@ PolyRec = {
 
   t0 = @(t int) (right (@(t (type (int, int))) (left (0, 0))));
 };
+
+N :> {
+  type Z;
+  type S _;
+} = {
+  type Z   = {};
+  type S _ = {};
+};
+
+ListN = let
+  type IMPURE (type x) (type p _ _) (type t _ _) = {
+    nil     :               p x N.Z;
+    (::) 'n : x -> t x n -> p x (N.S n);
+  };
+  type PURE (type p _ _) (type t _ _) = {
+    nil  'x    :               p x N.Z;
+    (::) 'x 'n : x => t x n => p x (N.S n);
+  };
+in {
+  t = rec (type t _ _) =>
+    fun (type x) (type n) => type wrap (type p _ _) => IMPURE x p t -> p x n;
+  mk 'x 'n (fn: (type p _ _) => IMPURE x p t -> p x n) =
+    @(t x n) (wrap fn: wrap (type p _ _) => IMPURE x p t -> p x n);
+  nil 'x = mk (fun (type p _ _) (r: IMPURE x p t) => r.nil);
+  (::) 'x 'n (v: x) (vs: t x n) =
+    mk (fun (type p _ _) (r: IMPURE x p t) => r.:: v vs);
+  case 'x 'n (p: {type t _ _}) (cs: IMPURE x p.t t) e =
+    (unwrap e.@(t _ _): wrap (type p _ _) => IMPURE x p t -> p x n) p.t cs;
+} :> {
+  type t _ _;
+  ...PURE t t;
+  case 'x 'n: (p: {type t _ _}) => IMPURE x p.t t => t x n -> p.t x n;
+};
+
+ListN = {
+  ...ListN;
+  map 'x 'y 'n (xy: x -> y) = rec (map: 'n => t x n -> t y n) =>
+    case {type t _ n = t y n} {
+      nil = nil;
+      (::) x xs = xy x :: map xs;
+    };
+};
