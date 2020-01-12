@@ -493,7 +493,7 @@ Trace.debug (lazy ("[AppE] ts = " ^ String.concat ", " (List.map string_of_norm_
       | ExT([], WrapT(ExT(aks, t) as s2)), zs2 -> aks, t, s2, zs2
       | _ -> error typ.at "non-wrapped type for unwrap" in
     let t1, zs1, ex = elab_instvar env var in
-    let s1 =
+    let ExT(aks1, _) as s1 =
       match t1 with
       | WrapT(s1) -> s1
       | InferT(z) ->
@@ -502,9 +502,10 @@ Trace.debug (lazy ("[AppE] ts = " ^ String.concat ", " (List.map string_of_norm_
       | _ -> error var.at "expression is not a wrapped value" in
 Trace.debug (lazy ("[UnwrapE] s1 = " ^ string_of_norm_extyp s1));
 Trace.debug (lazy ("[UnwrapE] s2 = " ^ string_of_norm_extyp s2));
+    let p = if aks1 = [] then Pure else Impure in
     let _, zs3, f = try sub_extyp env s1 s2 [] with Sub e -> error exp.at
       ("wrapped type does not match annotation: " ^ Sub.string_of_error e) in
-    s2, Impure, lift_warn exp.at t (add_typs aks env) (zs1 @ zs2 @ zs3),
+    s2, p, lift_warn exp.at t (add_typs aks env) (zs1 @ zs2 @ zs3),
     IL.AppE(f, IL.DotE(ex, "wrap"))
 
   | EL.UnrollE(var, typ) ->
