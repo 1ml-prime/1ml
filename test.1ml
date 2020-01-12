@@ -290,7 +290,7 @@ in
   y1 = (G(type bool)).y : list int;
   y2 = (G(type bool)).y : list bool;
   M = G(type bool);
-;;  y3 = M.y : list (M.u);
+  type_error M.y : list (M.u);
 end;
 
 
