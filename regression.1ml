@@ -24,8 +24,14 @@ Equivalence: {
 
 ;;
 
+type_error { type_error 101 };
+
+;;
+
 Pure : () => {type t = bool; existentials: t} = fun () =>
   {type t = bool; existentials = false} :> {type t = bool; existentials: t};
 
-;; Impure : () => {type t; existentials: t} = fun () =>
-;;   {type t = bool; existentials = true} :> {type t = bool; existentials: t};
+type_error {
+  Impure : () => {type t; existentials: t} = fun () =>
+    {type t = bool; existentials = true} :> {type t = bool; existentials: t};
+};
