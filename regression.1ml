@@ -28,8 +28,14 @@ Equivalence: {
 
 ;;
 
-;; Impure : () => {type t} = fun () =>
-;;   if true then {type t = int} else {type t = bool} : {type t};
+type_error { type_error 101 };
+
+;;
+
+type_error {
+  Impure : () => {type t} = fun () =>
+    if true then {type t = int} else {type t = bool} : {type t};
+};
 
 ImpureIf : () -> {type t} = fun () =>
   if true then {type t = int} else {type t = bool} : {type t};
@@ -40,5 +46,7 @@ PureIf : () => ('a => a => a) = fun () =>
 Pure : () => {type t = bool; existentials: t} = fun () =>
   {type t = bool; existentials = false} :> {type t = bool; existentials: t};
 
-;; Impure : () => {type t; existentials: t} = fun () =>
-;;   {type t = bool; existentials = true} :> {type t = bool; existentials: t};
+type_error {
+  Impure : () => {type t; existentials: t} = fun () =>
+    {type t = bool; existentials = true} :> {type t = bool; existentials: t};
+};
