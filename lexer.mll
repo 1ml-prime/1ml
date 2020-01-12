@@ -73,6 +73,7 @@ rule token = parse
   | "do" { DO }
   | "else" { ELSE }
   | "end" { END }
+  | "type_error" { TYPE_ERROR }
   | "fun" { FUN }
   | "if" { IF }
   | "in" { IN }

@@ -34,6 +34,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %token LBRACE RBRACE
 %token DOT AT TICK
 %token COMMA SEMI
+%token TYPE_ERROR
 
 %token EOF
 
@@ -366,6 +367,8 @@ atbind :
     { letB($2, $4)@@at() }
   | DO exp
     { doB($2)@@at() }
+  | TYPE_ERROR exp
+    { TypeErrorB($2)@@at() }
 /*
   | LPAR bind RPAR
     { $2 }
