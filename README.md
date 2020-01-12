@@ -127,6 +127,7 @@ B ::=
     include E               (record/structure inclusion)
     B ; B                   (sequencing)
                             (empty)
+    type_error E            (type error assertion - elaboration of E must fail)
 ```
 
 Comments are written in one of the following form:
