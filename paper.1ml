@@ -86,7 +86,7 @@ Map (Key : EQ) :> MAP with (type key = Key.t) =
 F = (fun (a : type) => type {x : a}) :> type => type;
 G = (fun (a : type) => type {x : a}) :> type -> type;
 H = fun (a : type) => (type {x : a} :> type);
-;; J = G :> type => type;  ;; ill-typed!
+type_error G :> type => type;
 
 ;; Higher Polymorphism
 
@@ -188,10 +188,10 @@ type T5 = (a : type) => {};
 type T6 = {type u a = bool};
 
 type Ti = T1;
-;; type U = pair Ti Ti;  ;; error
-;; A = (type Ti) : type;  ;; error
-;; B = {type u = Ti} :> {type u};  ;; error
-;; C = if true then Ti else int : type;  ;; error
+type_error type pair Ti Ti;
+type_error (type Ti) : type;
+type_error {type u = Ti} :> {type u};
+type_error if true then Ti else int : type;
 
 type T1' = (= type int);
 type T2' = {type u = int};
@@ -210,7 +210,7 @@ C = if true then Ti else int : type;
 
 type MONSTER =
   (= (fun (x : {}) => ({type t = int; v = 0} :> {type t; v : t}).v));
-;; Test (X : MONSTER) = X : MONSTER;  ;; error
+type_error { Test (X : MONSTER) = X : MONSTER };
 
 
 ;; Section 4: Full 1ML
@@ -248,7 +248,7 @@ FirstClassImplicit =
 id : 'a => a -> a = fun x => x;
 G (x : int) = {M = {type t = int; v = x} :> {type t; v : t}; f = id id};
 C = G 3;
-;; x = C.f C.M.v;  ;; error
+type_error C.f C.M.v;
 
 ;; ...works with pure 'id' function:
 id = fun x => x;
@@ -268,7 +268,7 @@ G (x : int) = {M = {type t = int; v = x} :> {type t; v : t}; f = id id};
 C = G 3;
 C' = G 3;
 x = C'.f C.M.v;
-;; x = C.f C'.M.v;  ;; but this is an error
+type_error C.f C'.M.v;
 
 
 ;; Appendix C: Impredicativity

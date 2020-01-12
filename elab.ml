@@ -600,6 +600,13 @@ and elab_bind env bind l =
     );
     s, p, zs, e
 
+  | EL.TypeErrorB(exp) ->
+    (match try Some (elab_exp env exp l) with _ -> None with
+    | None -> ExT([], StrT[]), Pure, [], IL.TupE[]
+    | Some (s, _, _, _) ->
+       error exp.at ("expected error, but got: " ^ Types.string_of_extyp s)
+    )
+
   | EL.EmptyB ->
     ExT([], StrT[]), Pure, [], IL.TupE[]
 

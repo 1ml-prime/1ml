@@ -58,6 +58,7 @@ and bind' =
   | SeqB of bind * bind
   | VarB of var * exp
   | InclB of exp
+  | TypeErrorB of exp
 
 
 let var_counts = ref []
@@ -373,6 +374,7 @@ let label_of_bind b =
   | SeqB _ -> "SeqB"
   | VarB _ -> "VarB"
   | InclB _ -> "InclB"
+  | TypeErrorB _ -> "TypeErrorB"
 
 
 let string_of_var x = "\"" ^ x.it ^ "\""
@@ -431,3 +433,4 @@ and string_of_bind b =
   | SeqB(b1, b2) -> node' [string_of_bind b1; string_of_bind b2]
   | VarB(x, e) -> node' [string_of_var x; string_of_exp e]
   | InclB(e) -> node' [string_of_exp e]
+  | TypeErrorB(e) -> node' [string_of_exp e]
