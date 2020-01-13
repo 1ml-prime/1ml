@@ -176,6 +176,17 @@ let rec sub_typ env t1 t2 ps =
         raise (Sub (Mismatch(t1, t2))) in
       [], zs, e1
 
+    | LamT(aks1, t1'), LamT(aks2, t2') ->
+      if List.length aks1 <> List.length aks2 ||
+         List.exists2 (fun ak1 ak2 -> snd ak1 <> snd ak2) aks1 aks2 then
+        raise (Sub (Mismatch(t1, t2)));
+      let zs = try
+          equal_typ (add_typs aks2 env)
+            (subst_typ (subst aks1 (varTs aks2)) t1') t2'
+        with Sub e ->
+          raise (Sub (Mismatch(t1, t2)))
+      in [], lift env zs, e1
+
     | RecT(ak1, t1'), RecT(ak2, t2') ->
       if snd ak1 <> snd ak2 then
         raise (Sub (Mismatch(t1, t2)));
