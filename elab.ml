@@ -131,6 +131,9 @@ let rec_from_extyp typ label s =
         rec_t, AppT(unroll_t, ts), AppT(roll_t, ts), ak
       | RecT(ak, unroll_t) as rec_t ->
         rec_t, unroll_t, rec_t, ak
+      | DotT(t, lab) ->
+        let rec_t, unroll_t, roll_t, ak = find_rec t in
+        rec_t, DotT(unroll_t, lab), DotT(roll_t, lab), ak
       | _ ->
         error typ.at ("non-recursive type for " ^ label ^ ":"
                       ^ " " ^ Types.string_of_extyp s) in
