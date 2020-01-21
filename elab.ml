@@ -132,12 +132,12 @@ let rec_from_extyp typ label s =
       | RecT(ak, unroll_t) as rec_t ->
         rec_t, unroll_t, rec_t, ak
       | _ ->
-        error typ.at ("non-recursive type for " ^ label ^ ":\n"
-                      ^ "  " ^ Types.string_of_extyp s) in
+        error typ.at ("non-recursive type for " ^ label ^ ":"
+                      ^ " " ^ Types.string_of_extyp s) in
     find_rec t
   | _ ->
-     error typ.at ("non-recursive type for " ^ label ^ ":\n"
-                   ^ "  " ^ Types.string_of_extyp s)
+    error typ.at ("non-recursive type for " ^ label ^ ":"
+                  ^ " " ^ Types.string_of_extyp s)
 
 
 (* Instantiation *)
@@ -410,10 +410,10 @@ Trace.debug (lazy ("[FunE] env =" ^ VarSet.fold (fun a s -> s ^ " " ^ a) (domain
     let _, zs2, f =
       try sub_typ env var_t unroll_t []
       with Sub e ->
-        error var.at ("rolled value does not match annotation:\n"
-                      ^ "  " ^ Types.string_of_typ var_t ^ "\n"
-                      ^ "vs\n"
-                      ^ "  " ^ Types.string_of_typ unroll_t) in
+        error var.at ("rolled value does not match annotation:"
+                      ^ " " ^ Types.string_of_typ var_t ^ " "
+                      ^ "<"
+                      ^ " " ^ Types.string_of_typ unroll_t) in
     ExT([], roll_t), Pure, zs1 @ zs2,
     IL.RollE(IL.AppE(f, IL.VarE(var.it)), erase_typ roll_t)
 
@@ -513,9 +513,9 @@ Trace.debug (lazy ("[UnwrapE] s2 = " ^ string_of_norm_extyp s2));
     let rec_t, unroll_t, roll_t, ak = rec_from_extyp typ "unrolling" s in
     let var_t = lookup_var env var in
     let _, zs2, f = try sub_typ env var_t roll_t [] with Sub e ->
-      error var.at ("unrolled value does not match annotation:\n"
-                    ^ "  " ^ Types.string_of_typ var_t ^ "\n"
-                    ^ "vs\n"
+      error var.at ("unrolled value does not match annotation:"
+                    ^ "  " ^ Types.string_of_typ var_t ^ " "
+                    ^ "<"
                     ^ "  " ^ Types.string_of_typ roll_t) in
     let unroll_t = subst_typ (subst [ak] [rec_t]) unroll_t in
     ExT([], unroll_t), Pure, zs1 @ zs2,
