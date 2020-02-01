@@ -97,7 +97,7 @@ Hungry = {
 
 PolyRec = {
   type l a = rec (type t) => alt a t;
-  t = rec (type t a) => fun (type a) => alt a (t (type (a, a)));
+  ...rec {type t a} => {type t a = alt a (t (type (a, a)))};
 
   t_int = t int;
 
@@ -121,7 +121,7 @@ ListN = let
   };
   type T x n (type t _ _) = (type p _) => I x p t -> p n;
 in {
-  t = rec (type t _ _) => fun (type x) (type n) => type wrap T x n t;
+  ...rec {type t _ _} => {type t x n = wrap T x n t};
 
   case 'x 'n (type p _) (cs: I x p t) e =
     (unwrap e.@(t _ _): wrap T x n t) p cs;
