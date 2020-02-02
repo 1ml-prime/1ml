@@ -27,7 +27,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 
 %token HOLE PRIMITIVE
 %token FUN REC LET LOCAL IN DO WRAP UNWRAP TYPE INCLUDE END
-%token IF THEN ELSE OR AND AS
+%token IF THEN ELSE LOGICAL_OR LOGICAL_AND AS
 %token EQUAL COLON SEAL ARROW DARROW
 %token WITH
 %token LPAR RPAR
@@ -297,9 +297,9 @@ infexp :
     { appE(VarE($1)@@ati(1), $2)@@at() }
   | infexp sym appexp
     { appE(appE(VarE($2)@@ati(2), $1)@@at(), $3)@@at() }
-  | infexp OR appexp
+  | infexp LOGICAL_OR appexp
     { orE($1, $3)@@at() }
-  | infexp AND appexp
+  | infexp LOGICAL_AND appexp
     { andE($1, $3)@@at() }
   | DO appexp
     { doE($2)@@at() }
