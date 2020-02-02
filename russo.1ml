@@ -65,7 +65,7 @@ type STREAM =
 };
 
 divides k n =
-  let loop = rec loop => fun i => (i * k == n) or ((i * k < n) and loop (i + 1))
+  let loop = rec loop => fun i => (i * k == n) || ((i * k < n) && loop (i + 1))
   in loop 1;
 
 sift (S : STREAM) :> STREAM =
