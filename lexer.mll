@@ -68,7 +68,7 @@ let char = '\''character '\''
 
 rule token = parse
   | "_" { HOLE }
-  | "and" { AND }
+  | "&&" { LOGICAL_AND }
   | "as" { AS }
   | "do" { DO }
   | "else" { ELSE }
@@ -80,7 +80,7 @@ rule token = parse
   | "..." { INCLUDE }
   | "let" { LET }
   | "local" { LOCAL }
-  | "or" { OR }
+  | "||" { LOGICAL_OR }
   | "wrap" { WRAP }
   | "primitive" { PRIMITIVE }
   | "rec" { REC }

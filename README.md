@@ -184,8 +184,8 @@ E ::= ...
     (SYM)                           ~> SYM
     E1 SYM E2                       ~> (SYM) (E1, E2)  [3]
     if E1 then E2 else E3           ~> if E1 then E2 else E3 : _
-    E1 or E2                        ~> if E1 then true else E2
-    E1 and E2                       ~> if E1 then E2 else false
+    E1 || E2                        ~> if E1 then true else E2
+    E1 && E2                        ~> if E1 then E2 else false
     E : T                           ~> (fun (X : T) => X) E
     E :> T                          ~> unwrap (wrap E : T) : T
     let B in E                      ~> {B ; X = E}.X
