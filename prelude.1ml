@@ -225,7 +225,7 @@ type SET =
 Set (Elem : ORD) :> SET with (elem = Elem.t) =
 {
   type elem = Elem.t;
-  (==) x y = let include Elem in (x <= y) and (y <= x);
+  (==) x y = let include Elem in (x <= y) && (y <= x);
   type set = (int, elem -> bool);
   type t = set;
   empty = (0, fun (x : elem) => false);
@@ -233,7 +233,7 @@ Set (Elem : ORD) :> SET with (elem = Elem.t) =
   mem (x : elem) (s : set) = s._2 x;
   add (x : elem) (s : set) =
     if mem x s then s
-    else (s._1 + 1, fun (y : elem) => x == y or mem y s) : set;
+    else (s._1 + 1, fun (y : elem) => x == y || mem y s) : set;
 };
 
 
@@ -252,7 +252,7 @@ type MAP =
 Map (Key : ORD) :> MAP with (key = Key.t) =
 {
   type key = Key.t;
-  (==) x y = let include Key in (x <= y) and (y <= x);
+  (==) x y = let include Key in (x <= y) && (y <= x);
   type map a = key -> opt a;
   t = map;
   empty x = none;
