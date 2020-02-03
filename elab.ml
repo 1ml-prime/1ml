@@ -530,16 +530,23 @@ Trace.debug (lazy ("[UnwrapE] s2 = " ^ string_of_norm_extyp s2));
     let env1 = add_val var.it t1 (add_typs aks1 env) in
     (match aks1 with
     | [] ->
-      let ExT(aks2, t2), p, zs2, e = elab_exp env1 exp1 l in
+      let ExT(aks2, t2) as s2, p, zs2, _ = elab_exp env1 exp1 l in
       if p <> Pure then error exp.at "recursive expression is not pure";
-      let _, zs3, f =
+      let _, zs3, _ =
         try sub_typ (add_typs aks2 env1) t2 t1 [] with Sub e -> error exp.at
           ("recursive expression does not match annotation: " ^
             Sub.string_of_error e)
       in
+      let env2 = add_val var.it t2 (add_typs aks2 env) in
+      let ExT(aks3, t3), p, zs4, e = elab_exp env2 exp1 l in
+      if p <> Pure then error exp.at "recursive expression is not pure";
+      let zs5 =
+        try equal_typ env2 t2 t3 with Sub e -> error exp.at
+          ("recursive expression diverges: " ^ Sub.string_of_error e)
+      in
       (* TODO: syntactic restriction *)
-      s1, Pure, lift_warn exp.at t1 (add_typs aks2 env) (zs1 @ zs2 @ zs3),
-      IL.RecE(var.it, erase_typ t1, IL.AppE(f, e))
+      s2, Pure, lift_warn exp.at t2 (add_typs aks3 env) (zs1 @ zs2 @ zs3 @ zs4 @ zs5),
+      IL.RecE(var.it, erase_typ t2, e)
     | _ ->
       let t2, zs2 = elab_pathexp env1 exp1 l in
 Trace.debug (lazy ("[RecT] s1 = " ^ string_of_norm_extyp s1));
