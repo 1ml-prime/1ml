@@ -74,7 +74,17 @@ type_error {
 
 ;;
 
-Mutually = {
+type_error rec (R: {}) => {
+  kaboom () = R;
+};
+
+Kaboom = rec (R: rec R => {kaboom: () -> R}) => @(= R) {
+  kaboom () = R;
+};
+
+;;
+
+Mutually = let
   T = rec (R: {
     Even: {type t _};
     Odd: {type t _};
@@ -86,23 +96,23 @@ Mutually = {
       type t x = opt (R.Even.t x);
     };
   };
-
-  V = rec (R: {
+in {
+  ...rec (R: {
     Even: {
-      make 'x: x => T.Odd.t x => T.Even.t x;
       size 'x: T.Even.t x -> int;
     };
     Odd: {
-      make 'x: opt (T.Even.t x) => T.Odd.t x;
       size 'x: T.Odd.t x -> int;
     };
   }) => {
     Even = {
+      ...T.Even;
       make 'x (head: x) (tail: T.Odd.t x) : T.Even.t x =
         @(T.Even.t x) {head; tail};
       size 'x (v: T.Even.t x) = 1 + R.Odd.size v.@(T.Even.t _).tail;
     };
     Odd = {
+      ...T.Odd;
       make 'x (v: opt (T.Even.t x)) : T.Odd.t x = @(T.Odd.t x) v;
       size 'x (v: T.Odd.t x) =
         caseopt v.@(T.Odd.t x)
@@ -110,11 +120,6 @@ Mutually = {
           (fun e => R.Even.size e);
     };
   };
-};
-
-Mutually = {
-  Even = {...Mutually.T.Even; ...Mutually.V.Even};
-  Odd = {...Mutually.T.Odd; ...Mutually.V.Odd};
 
   one = Odd.size (Odd.make (some (Even.make true (Odd.make none))));
 };
