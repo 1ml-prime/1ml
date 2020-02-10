@@ -36,6 +36,17 @@ type_error {
     {type t = bool; existentials = true} :> {type t = bool; existentials: t};
 };
 
+type_error {
+  Impure : () => {type t} = fun () =>
+    if true then {type t = int} else {type t = bool} : {type t};
+};
+
+ImpureIf : () -> {type t} = fun () =>
+  if true then {type t = int} else {type t = bool} : {type t};
+
+PureIf : () => ('a => a => a) = fun () =>
+  if true then id else id : 'a => a => a;
+
 ;;
 
 Mutually = {
