@@ -74,15 +74,12 @@ rule token = parse
   | "as" { AS }
   | "do" { DO }
   | "else" { ELSE }
-  | "end" { END }
   | "type_error" { TYPE_ERROR }
   | "fun" { FUN }
   | "if" { IF }
   | "in" { IN }
-  | "include" { INCLUDE }
-  | "..." { INCLUDE }
+  | "..." { ELLIPSIS }
   | "let" { LET }
-  | "local" { LOCAL }
   | "||" { LOGICAL_OR }
   | "wrap" { WRAP }
   | "primitive" { PRIMITIVE }
