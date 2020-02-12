@@ -93,7 +93,7 @@ Opt :> OPT =
   some x = wrap (fun (b : type) (n : b) (s : _ -> b) => s x) : opt _;
   caseopt xo = (unwrap xo : opt _) _;
 };
-include Opt;
+...Opt;
 
 do log "Alt";
 
@@ -111,7 +111,7 @@ Alt :> ALT =
   right x = wrap (fun (c : type) (l : _ -> c) (r : _ -> c) => r x) : alt _ _;
   casealt xy = (unwrap xy : alt _ _) _;
 };
-include Alt;
+...Alt;
 
 do log "List";
 
@@ -124,7 +124,7 @@ type LIST_CORE =
 };
 type LIST =
 {
-  include LIST_CORE;
+  ...LIST_CORE;
   caselist 'a 'b : list a -> b -> (a -> list a -> b) -> b;
   isNil 'a : list a -> bool;
   head 'a : list a -> opt a;
@@ -139,7 +139,7 @@ type LIST =
 };
 List :> LIST =
 {
-  include
+  ...
   {
     type list a = wrap (b : type) => b -> (a -> b -> b) -> b;
     nil = wrap (fun (b : type) (n : b) (c : _ -> b -> b) => n) : list _;
@@ -208,7 +208,7 @@ List :> LIST =
 };
 ;)
 
-include List;
+...List;
 
 do log "Set";
 
@@ -274,13 +274,13 @@ TestSetAndMap =
 };
 
 
-local
+...let
   f x = nil;
   g 'a : () -> list a = f;
-in
+in {
   G (type t) =
   {
-    include {type u = t; v = nil} :> {type u; v : list u};
+    ...{type u = t; v = nil} :> {type u; v : list u};
     y = g ();
     y1 = g () : list int;
     y2 = g () : list t;
@@ -291,7 +291,7 @@ in
   y2 = (G(type bool)).y : list bool;
   M = G(type bool);
   type_error M.y : list (M.u);
-end;
+};
 
 
 type int = primitive "int";
