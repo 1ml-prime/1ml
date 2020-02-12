@@ -26,7 +26,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %}
 
 %token HOLE PRIMITIVE
-%token FUN REC LET LOCAL IN DO WRAP UNWRAP TYPE INCLUDE END
+%token FUN REC LET IN DO WRAP UNWRAP TYPE ELLIPSIS
 %token IF THEN ELSE LOGICAL_OR LOGICAL_AND AS
 %token EQUAL COLON SEAL ARROW DARROW
 %token WITH
@@ -186,10 +186,8 @@ atdec :
   | TYPE head typparamlist EQUAL typ
     { VarD($2, funT($3, EqT(TypE($5)@@ati 5)@@ati 5, Pure@@ati 4)@@at())
         @@at() }
-  | INCLUDE typ
+  | ELLIPSIS typ
     { InclD($2)@@at() }
-  | LOCAL bind IN dec END
-    { letD($2, $4)@@at() }
 /*
   | LPAR dec RPAR
     { $2 }
@@ -361,10 +359,8 @@ atbind :
     { VarB($1, VarE($1.it@@at())@@at())@@at() }
   | TYPE head typparamlist EQUAL typ
     { VarB($2, funE($3, TypE($5)@@ati 5)@@span[ati 3; ati 5])@@at() }
-  | INCLUDE exp
+  | ELLIPSIS exp
     { InclB($2)@@at() }
-  | LOCAL bind IN bind END
-    { letB($2, $4)@@at() }
   | DO exp
     { doB($2)@@at() }
   | TYPE_ERROR exp
