@@ -78,7 +78,6 @@ let letE(b, e) =
   DotE(StrE(SeqB(b, b2)@@span[b.at; e.at])@@span[b.at; e.at], x'@@e.at)
 
 let letT(b, t) = PathT(letE(b, TypE(t)@@t.at)@@span[b.at; t.at])
-let letD(b, d) = InclD(letT(b, StrT(d)@@d.at)@@span[b.at; d.at])
 let letB(b, b') = InclB(letE(b, StrE(b')@@b'.at)@@span[b.at; b'.at])
 
 let rec tupT(ts) = StrT(tupT' 1 ts)

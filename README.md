@@ -98,7 +98,7 @@ T ::=
 (declarations)
 D ::=
     X : T                   (field/member declaration)
-    include T               (type/signature inclusion)
+    ... T                   (type/signature inclusion)
     D ; D                   (sequencing)
                             (empty)
 
@@ -124,7 +124,7 @@ E ::=
 (bindings)
 B ::=
     X = E                   (field/member definition)
-    include E               (record/structure inclusion)
+    ... E                   (record/structure inclusion)
     B ; B                   (sequencing)
                             (empty)
     type_error E            (type error assertion - elaboration of E must fail)
@@ -168,12 +168,10 @@ A ::=
 
 (declarations)
 D ::= ...
-    ...T                            ~> include T
     X A1 ... An : T                 ~> X : A1 -> ... -> An -> T
     X A1 ... An = E                 ~> X : A1 -> ... -> An -> (= E)
     type X A1 ... An                ~> X : A1 => ... => An => type
     type X A1 ... An = T            ~> X : A1 => ... => An => (= type T)
-    local B in D end                ~> include (let B in {D})
 
 (expressions)
 E ::= ...
@@ -205,22 +203,20 @@ P ::=
     {..., type X A1 ... An, ...}    ~> {..., X : A1 => ... => An => type, ...}
     (P1, ..., Pn)                   ~> {_1 = P1, ..., _n = Pn}
     (type X A1 ... An)              ~> (X : A1 => ... => An => type)
-    wrap P : T                      ~> local $ = unwrap $ : T in P = $ end
-    @T P                            ~> local $ = $.@T in P = $ end
+    wrap P : T                      ~> ...let $ = unwrap $ : T in {P = $}
+    @T P                            ~> ...let $ = $.@T in {P = $}
     P : T                           ~> P = $ : T
     P1 as P2                        ~> P1; P2
 
 (bindings)
 B ::= ...
-    ...E                            ~> include E
     X                               ~> X = X
-    P = E                           ~> local $ = E in P end
+    P = E                           ~> ...let $ = E in {P}
     X A1 ... An = E                 ~> X = fun A1 ... An => E
     X A1 ... An : T = E             ~> X = fun A1 ... An => E : T
     X A1 ... An :> T = E            ~> X = fun A1 ... An => E :> T
     type X A1 ... An = T            ~> X = fun A1 ... An => type T
-    local B1 in B2 end              ~> include (let B1 in {B2})
-    do E                            ~> local _ = E in end
+    do E                            ~> ...let _ = E in {}
 ```
 
 Note [1]: The expansion of an argument `X` to `(X : type)` is only used for the
