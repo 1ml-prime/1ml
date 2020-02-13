@@ -28,6 +28,10 @@ Equivalence: {
 
 ;;
 
+hole_is_allowed_type_pattern (type _ _) = ();
+
+;;
+
 type_error { type_error 101 };
 
 ;;

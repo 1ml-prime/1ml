@@ -381,16 +381,15 @@ bind :
 
 atpat :
   | head
-    { if $1.it = "_" then holeP@@at() else varP($1)@@at() }
+    { headP $1 }
   | LBRACE decon RBRACE
     { strP($2)@@at() }
   | LPAR RPAR
     { strP([])@@at() }
   | LPAR patlist RPAR
     { match $2 with [p] -> p | ps -> tupP(ps)@@at() }
-  | LPAR TYPE name typparamlist RPAR
-    { annotP(varP($3.it@@ati 3)@@ati 3,
-        funT($4, TypT@@ati 2, Pure@@ati 2)@@at())@@at() }
+  | LPAR TYPE head typparamlist RPAR
+    { annotP(headP $3, funT($4, TypT@@ati 2, Pure@@ati 2)@@at())@@at() }
 ;
 apppat :
   | atpat
