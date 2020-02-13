@@ -388,9 +388,8 @@ atpat :
     { strP([], at())@@at() }
   | LPAR patlist RPAR
     { match $2 with [p] -> p | ps -> tupP(ps, at())@@at() }
-  | LPAR TYPE name typparamlist RPAR
-    { annotP(varP($3.it@@ati 3)@@ati 3,
-        funT($4, TypT@@ati 2, Pure@@ati 2)@@at())@@at() }
+  | LPAR TYPE head typparamlist RPAR
+    { annotP(headP($3)@@ati 3, funT($4, TypT@@ati 2, Pure@@ati 2)@@at())@@at() }
 ;
 apppat :
   | atpat
