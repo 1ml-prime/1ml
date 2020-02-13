@@ -51,6 +51,9 @@ AmateurOptics = {
 
 hole_is_allowed_type_pattern (type _ _) = ();
 
+typparams_allowed (id 'a: a => a) ({alsoId 'x: x => x}) =
+  alsoId (id 1, id "one", alsoId true);
+
 ;;
 
 type_error { type_error 101 };
@@ -188,7 +191,7 @@ in {
 
 ListN = {
   ...ListN;
-  map 'x 'y (xy: x -> y) = rec (map: 'n => t x n -> t y n) =>
+  map 'x 'y (xy: x -> y) = rec (map 'n: t x n -> t y n) =>
     case (t _) {
       nil;
       (::) x xs = xy x :: map xs;
