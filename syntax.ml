@@ -69,6 +69,15 @@ let var s =
 
 let index n = "_" ^ string_of_int n
 
+(* Helpers *)
+
+let typParam param =
+  match param.it with
+  | (b, {it = HoleT; at}, i) -> (b, TypT@@at, i)@@param.at
+  | _ -> param
+
+let typParamList paramList =
+  List.map typParam paramList
 
 (* Sugar *)
 
