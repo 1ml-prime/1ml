@@ -251,6 +251,9 @@ let varP(x) = VarB(x, VarE("$"@@x.at)@@x.at)@@x.at, None
 let holeP : bind * typ option =
   EmptyB@@nowhere_region, None
 
+let headP id =
+  if id.it = "_" then holeP@@id.at else varP(id)@@id.at
+
 let asTopt(to1, to2) =
   match to1, to2 with
   | None, None -> None
