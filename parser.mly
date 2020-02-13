@@ -110,13 +110,13 @@ paramlist :
   | param paramlist
     { $1::$2 }
 ;
+typparam :
+  | param
+    { typParam $1 }
+;
 typparamlist :
   | paramlist
-    { List.map (fun p ->
-        match p.it with
-        | (b, {it = HoleT; at}, i) -> (b, TypT@@at, i)@@p.at
-        | _ -> p
-      ) $1 }
+    { typParamList $1 }
 ;
 arrow :
   | ARROW
@@ -388,6 +388,8 @@ atpat :
     { strP($2)@@at() }
   | LPAR RPAR
     { strP([])@@at() }
+  | LPAR head typparam typparamlist COLON typ RPAR
+    { annotP(varP($2)@@$2.at, funT($3::$4, $6, Pure@@at())@@at())@@at() }
   | LPAR patlist RPAR
     { match $2 with [p] -> p | ps -> tupP(ps)@@at() }
   | LPAR TYPE head typparamlist RPAR
@@ -431,6 +433,9 @@ atdecon :
     { [($1, annotP($5, $3)@@span[ati 2; ati 5])@@at()] }
   | name COLON typ
     { [($1, annotP(varP($1.it@@ati 1)@@ati 1, $3)@@at())@@at()] }
+  | name typparam typparamlist COLON typ
+    { [($1, annotP(varP($1)@@$1.at,
+        funT($2::$3, $5, Pure@@at())@@at())@@at())@@at()] }
   | TYPE name typparamlist
     { [($2, annotP(varP($2.it@@ati 2)@@ati 2,
         funT($3, TypT@@ati 1, Pure@@ati 1)@@at())@@at())@@at()] }
