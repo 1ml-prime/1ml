@@ -1,3 +1,7 @@
+type DEC_PUNNING = {int; list};
+
+;;
+
 Equivalence: {
   type t a b;
 
