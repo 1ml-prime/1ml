@@ -2,6 +2,10 @@ record_inference x = x.works_a_little;
 
 ;;
 
+type DEC_PUNNING = {int; list};
+
+;;
+
 Equivalence: {
   type t a b;
 
