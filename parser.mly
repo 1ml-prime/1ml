@@ -183,6 +183,8 @@ atdec :
   | head typparamlist EQUAL exp
     { VarD($1, funT($2, EqT($4)@@ati 4, Pure@@ati 3)@@span[ati 2; ati 4])
         @@at() }
+  | name
+    { VarD($1, funT([], EqT(VarE($1)@@ati 1)@@ati 1, Pure@@ati 1)@@ati 1)@@at() }
   | TYPE head typparamlist EQUAL typ
     { VarD($2, funT($3, EqT(TypE($5)@@ati 5)@@ati 5, Pure@@ati 4)@@at())
         @@at() }

@@ -172,6 +172,7 @@ D ::= ...
     X A1 ... An = E                 ~> X : A1 -> ... -> An -> (= E)
     type X A1 ... An                ~> X : A1 => ... => An => type
     type X A1 ... An = T            ~> X : A1 => ... => An => (= type T)
+    X                               ~> X : (= X)
 
 (expressions)
 E ::= ...
