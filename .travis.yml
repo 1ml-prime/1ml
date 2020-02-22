@@ -10,12 +10,6 @@ matrix:
             - ocaml
     - os: osx
       osx_image: xcode11.3
-      addons:
-        homebrew:
-          packages:
-            - ocaml
-  allow_failures:
-    - os: osx
 
 git:
   depth: 5

@@ -11,6 +11,10 @@ if [ "$TRAVIS" = true ]; then
     travis_time_finish
     echo -e "\ntravis_fold:end:cppsm.$FOLD\r"
   }
+
+  if [ "$TRAVIS_OS_NAME" = osx ]; then
+    folded "Installing Ocaml" brew install ocaml
+  fi
 else
   folded() {
     echo
