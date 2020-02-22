@@ -74,36 +74,38 @@ let rec typs_of: type a. a def -> typ list = function
   | VarD -> [VarT]
   | ProdD (l, r) -> typs_of l @ typs_of r
 
-let rec inj: type a. a def -> a -> const list = function
-  | VoidD -> fun () -> []
-  | BoolD -> fun v -> [BoolV v]
-  | IntD -> fun v -> [IntV v]
-  | CharD -> fun v -> [CharV v]
-  | TextD -> fun v -> [TextV v]
-  | VarD -> fun v -> [v]
-  | ProdD (lD, rD) -> fun (l, r) -> inj lD l @ inj rD r
-
-let rec prj: type a. a def -> const list -> a = function
-  | VoidD -> (function [] -> () | _ -> failwith "unit")
-  | BoolD -> (function [BoolV v] -> v | _ -> failwith "bool")
-  | IntD -> (function [IntV v] -> v | _ -> failwith "int")
-  | CharD -> (function [CharV v] -> v | _ -> failwith "char")
-  | TextD -> (function [TextV v] -> v | _ -> failwith "text")
-  | VarD -> (function [v] -> v | _ -> failwith "var")
+let rec inj: type a. a def -> a -> const list -> const list = function
+  | VoidD -> fun () vs -> vs
+  | BoolD -> fun v vs -> BoolV v :: vs
+  | IntD -> fun v vs -> IntV v :: vs
+  | CharD -> fun v vs -> CharV v :: vs
+  | TextD -> fun v vs -> TextV v :: vs
+  | VarD -> fun v vs -> v :: vs
   | ProdD (lD, rD) ->
-    let lN = List.length (typs_of lD) in
-    fun vs -> (prj lD (Lib.List.take lN vs), prj rD (Lib.List.drop lN vs))
+    let injL = inj lD and injR = inj rD in fun (l, r) vs -> injL l (injR r vs)
+
+let rec prj: type a. a def -> const list -> a * const list = function
+  | VoidD -> fun vs -> ((), vs)
+  | BoolD -> (function (BoolV v :: vs) -> (v, vs) | _ -> failwith "bool")
+  | IntD -> (function (IntV v :: vs) -> (v, vs) | _ -> failwith "int")
+  | CharD -> (function (CharV v :: vs) -> (v, vs) | _ -> failwith "char")
+  | TextD -> (function (TextV v :: vs) -> (v, vs) | _ -> failwith "text")
+  | VarD -> (function (v :: vs) -> (v, vs) | _ -> failwith "var")
+  | ProdD (lD, rD) ->
+    let prjL = prj lD and prjR = prj rD in
+    fun vs -> let (l, vs) = prjL vs in let (r, vs) = prjR vs in ((l, r), vs)
 
 let def name inD outD fn = {
     name = name;
     typ = typs_of inD, typs_of outD;
-    fn = fun vs -> inj outD (fn (prj inD vs))
+    fn = let inj = inj outD and prj = prj inD in
+         fun vs -> let (v, vs) = prj vs in assert (vs = []); inj (fn v) []
   }
 
 let funs =
   [
-    def "==" (VarD & VarD) BoolD (function (x1, x2) -> x1 = x2);
-    def "<>" (VarD & VarD) BoolD (function (x1, x2) -> x1 <> x2);
+    def "==" (VarD & VarD) BoolD (fun (x1, x2) -> x1 = x2);
+    def "<>" (VarD & VarD) BoolD (fun (x1, x2) -> x1 <> x2);
 
     def "true" VoidD BoolD (fun () -> true);
     def "false" VoidD BoolD (fun () -> false);
