@@ -153,19 +153,37 @@ in {
 
 ;;
 
+Alt = {
+  ...Alt
+  type a | b = alt a b
+} : {
+  ...(= Alt)
+  type _ | _
+}
+(|) = Alt.|
+
+infix_type_pat 'a 'b (type _ | _) (x: a | b) = x
+infix_type_dec 'a 'b ({type _ | _}) (x: a | b) = x
+
+type infix_tycon_param a b = (type _ <+> _) => a <+> b
+
+type (a `>>` b) c = c
+
+;;
+
 Hungry = {
   type eat a = rec eat_a => a -> eat_a
 
   eater 'a: eat a = rec (eater: eat a) => @(eat a) (fun a => eater)
 
-  (<+) eater x = eater.@(eat _) x
+  eater <+ x = eater.@(eat _) x
 
   do eater <+ 1 <+ 2
 }
 
 PolyRec = {
-  type l a = rec (type t) => alt a t
-  ...rec {type t a} => {type t a = alt a (t (type (a, a)))}
+  type l a = rec (type t) => a | t
+  ...rec {type t a} => {type t a = a | t (type (a, a))}
 
   t_int = t int
 
@@ -195,8 +213,8 @@ in {
     (unwrap e.@(t _ _): wrap T x n t) p cs
 
   let mk 'x 'n (c: T x n t) = @(t x n) (wrap c: wrap T x n t) in {
-    nil  'x                       = mk (fun (type p _) (r: I x p t) => r.nil)
-    (::) 'x 'n (v: x) (vs: t x n) = mk (fun (type p _) (r: I x p t) => r.:: v vs)
+    nil  'x                     = mk (fun (type p _) (r: I x p t) => r.nil)
+    'x (v: x) :: 'n (vs: t x n) = mk (fun (type p _) (r: I x p t) => r.:: v vs)
   }
 } :> {
   type t _ _
@@ -212,6 +230,6 @@ ListN = {
   map 'x 'y (xy: x -> y) = rec (map 'n: t x n -> t y n) =>
     case (t _) {
       nil
-      (::) x xs = xy x :: map xs
+      x :: xs = xy x :: map xs
     }
 }
