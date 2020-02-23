@@ -4,8 +4,8 @@ Fun = {
   bot = rec bot => fun x => bot x
   id x = x
   const x y = x
-  (>>) f g x = g (f x)
-  (<<) f g x = f (g x)
+  (f >> g) x = g (f x)
+  (f << g) x = f (g x)
   curry f x y = f (x, y)
   uncurry f (x, y) = f x y
 }
@@ -28,8 +28,8 @@ false = Bool.false
 not = Bool.not
 
 PolyEq (type t) = {
-  (==) (x : t) (y : t) = primitive "==" t (x, y)
-  (<>) (x : t) (y : t) = not (x == y)
+  (x : t) == (y : t) = primitive "==" t (x, y)
+  (x : t) <> (y : t) = not (x == y)
 }
 
 Bool = {
@@ -42,15 +42,15 @@ Bool = {
 Int = {
   type int = primitive "int"
   type t = int
-  (+) l r = primitive "Int.+" (l, r)
-  (-) l r = primitive "Int.-" (l, r)
-  (*) l r = primitive "Int.*" (l, r)
-  (/) l r = primitive "Int./" (l, r)
-  (%) l r = primitive "Int.%" (l, r)
-  (<) l r = primitive "Int.<" (l, r)
-  (>) l r = primitive "Int.>" (l, r)
-  (<=) l r = primitive "Int.<=" (l, r)
-  (>=) l r = primitive "Int.>=" (l, r)
+  l + r = primitive "Int.+" (l, r)
+  l - r = primitive "Int.-" (l, r)
+  l * r = primitive "Int.*" (l, r)
+  l / r = primitive "Int./" (l, r)
+  l % r = primitive "Int.%" (l, r)
+  l < r = primitive "Int.<" (l, r)
+  l > r = primitive "Int.>" (l, r)
+  l <= r = primitive "Int.<=" (l, r)
+  l >= r = primitive "Int.>=" (l, r)
   print = primitive "Int.print"
   ...PolyEq t
 }
@@ -86,11 +86,11 @@ type char = Char.t
 Text = {
   type text = primitive "text"
   type t = text
-  (++) l r = primitive "Text.++" (l, r)
-  (<) l r = primitive "Text.<" (l, r)
-  (>) l r = primitive "Text.>" (l, r)
-  (<=) l r = primitive "Text.<=" (l, r)
-  (>=) l r = primitive "Text.>=" (l, r)
+  l ++ r = primitive "Text.++" (l, r)
+  l < r = primitive "Text.<" (l, r)
+  l > r = primitive "Text.>" (l, r)
+  l <= r = primitive "Text.<=" (l, r)
+  l >= r = primitive "Text.>=" (l, r)
   length t = primitive "Text.length" t
   sub t i = primitive "Text.sub" (t, i)
   fromChar c = primitive "Text.fromChar" c
@@ -210,7 +210,7 @@ type SET = {
 
 Set (Elem : ORD) :> SET with (elem = Elem.t) = {
   type elem = Elem.t
-  (==) x y = let ...Elem in (x <= y) && (y <= x)
+  x == y = let ...Elem in (x <= y) && (y <= x)
   type set = (int, elem -> bool)
   type t = set
   empty = (0, fun (x : elem) => false)
@@ -235,7 +235,7 @@ type MAP = {
 
 Map (Key : ORD) :> MAP with (key = Key.t) = {
   type key = Key.t
-  (==) x y = let ...Key in (x <= y) && (y <= x)
+  x == y = let ...Key in (x <= y) && (y <= x)
   type map a = key -> opt a
   t = map
   empty x = none
