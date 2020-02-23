@@ -81,6 +81,26 @@ head :
   | HOLE
     { "_"@@at() }
 ;
+
+infixtyp :
+  | TYPE typparam sym typparam
+    { ($3, [$2; $4]) }
+  | TYPE LPAR typparam sym typparam RPAR typparamlist
+    { ($4, $3::$5::$7) }
+;
+typdec :
+  | infixtyp
+    { $1 }
+  | TYPE name typparamlist
+    { ($2, $3) }
+;
+typpat :
+  | infixtyp
+    { $1 }
+  | TYPE head typparamlist
+    { ($2, $3) }
+;
+
 implparam :
   | TICK LPAR head COLON TYPE RPAR
     { let b, _ = headP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
@@ -92,16 +112,21 @@ implparam :
 annparam :
   | LPAR head COLON typ RPAR
     { let b, _ = headP($2) in (b, $4, Expl@@ati 3)@@at() }
-  | LPAR TYPE head typparamlist RPAR
-    { let b, _ = headP($3) in
-      (b, funT($4, TypT@@ati 2, Pure@@ati 2)@@span[ati 2; ati 4],
+  | LPAR typpat RPAR
+    { let (head, typparams) = $2 in
+      let b, _ = headP(head) in
+      (b, funT(typparams, TypT@@at(), Pure@@ati 2)@@ati 2,
         Expl@@ati 2)@@at() }
   | implparam
     { $1 }
 ;
-param :
+explparam :
   | atpat
     { let b, t = (defaultP $1).it in (b, t, Expl@@at())@@at() }
+;
+param :
+  | explparam
+    { $1 }
   | implparam
     { $1 }
 ;
@@ -118,6 +143,18 @@ typparam :
 typparamlist :
   | paramlist
     { typParamList $1 }
+;
+implparamlist :
+  |
+    { [] }
+  | implparam implparamlist
+    { $1::$2 }
+;
+oneexplparam :
+  | implparam implparamlist explparam
+    { ($1::$2) @ [$3] }
+  | explparam
+    { [$1] }
 ;
 arrow :
   | ARROW
@@ -183,19 +220,23 @@ optannot :
     { Some $2 }
 ;
 
+opttypdef :
+  |
+    { TypT@@at() }
+  | EQUAL typ
+    { EqT(TypE($2)@@ati 2)@@ati 2 }
+;
+
 atdec :
   | name typparamlist COLON typ
     { VarD($1, funT($2, $4, Pure@@ati 2)@@span[ati 2; ati 4])@@at() }
-  | TYPE name typparamlist
-    { VarD($2, funT($3, TypT@@ati 1, Pure@@ati 3)@@at())@@at() }
   | name typparamlist EQUAL exp
     { VarD($1, funT($2, EqT($4)@@ati 4, Pure@@ati 3)@@span[ati 2; ati 4])
         @@at() }
   | name
     { VarD($1, funT([], EqT(VarE($1)@@ati 1)@@ati 1, Pure@@ati 1)@@ati 1)@@at() }
-  | TYPE name typparamlist EQUAL typ
-    { VarD($2, funT($3, EqT(TypE($5)@@ati 5)@@ati 5, Pure@@ati 4)@@at())
-        @@at() }
+  | typdec opttypdef
+    { VarD(fst $1, funT(snd $1, $2, Pure@@at())@@at())@@at() }
   | ELLIPSIS typ
     { InclD($2)@@at() }
   | LET bind IN typ
@@ -349,19 +390,31 @@ explist :
     { $1::$3 }
 ;
 
+funbind :
+  | head param paramlist
+    { ($1, $2::$3) }
+  | oneexplparam sym oneexplparam
+    { ($2, $1 @ $3) }
+  | LPAR oneexplparam sym oneexplparam RPAR paramlist
+    { ($3, $2 @ $4 @ $6) }
+;
+
 atbind :
-  | head param paramlist optannot EQUAL exp
-    { VarB($1, funE($2::$3, opt annotE($6, $4)@@span[ati 4; ati 6])
-        @@span[ati 2; ati 6])@@at() }
-  | head paramlist SEAL typ EQUAL exp
-    { VarB($1, funE($2, sealE($6, $4)@@span[ati 4; ati 6])
-        @@span[ati 2; ati 6])@@at() }
+  | funbind optannot EQUAL exp
+    { let (head, params) = $1 in
+      VarB(head, funE(params,
+        opt annotE($4, $2)@@span[ati 2; ati 4])@@at())@@at() }
+  | funbind SEAL typ EQUAL exp
+    { let (head, params) = $1 in
+      VarB(head, funE(params, sealE($5, $3)@@span[ati 3; ati 5])@@at())@@at() }
+  | head SEAL typ EQUAL exp
+    { VarB($1, sealE($5, $3)@@span[ati 3; ati 5])@@at() }
   | pat EQUAL exp
     { patB($1, $3)@@at() }
   | name
     { VarB($1, VarE($1.it@@at())@@at())@@at() }
-  | TYPE head typparamlist EQUAL typ
-    { VarB($2, funE($3, TypE($5)@@ati 5)@@span[ati 3; ati 5])@@at() }
+  | typpat EQUAL typ
+    { VarB(fst $1, funE(snd $1, TypE($3)@@ati 3)@@at())@@at() }
   | ELLIPSIS exp
     { InclB($2)@@at() }
   | DO exp
@@ -397,8 +450,10 @@ atpat :
     { annotP(headP($2)@@$2.at, funT($3::$4, $6, Pure@@at())@@at())@@at() }
   | LPAR patlist RPAR
     { match $2 with [p] -> p | ps -> tupP(ps, at())@@at() }
-  | LPAR TYPE head typparamlist RPAR
-    { annotP(headP($3)@@ati 3, funT($4, TypT@@ati 2, Pure@@ati 2)@@at())@@at() }
+  | LPAR typpat RPAR
+    { let (head, typparams) = $2 in
+      annotP(headP(head)@@head.at,
+        funT(typparams, TypT@@at(), Pure@@at())@@at())@@at() }
 ;
 apppat :
   | atpat
@@ -435,9 +490,10 @@ atdecon :
   | name typparam typparamlist COLON typ
     { ($1, annotP(varP($1)@@$1.at,
        funT($2::$3, $5, Pure@@at())@@at())@@at())@@at() }
-  | TYPE name typparamlist
-    { ($2, annotP(varP($2.it@@ati 2)@@ati 2,
-       funT($3, TypT@@ati 1, Pure@@ati 1)@@at())@@at())@@at() }
+  | typdec
+    { let (name, typparams) = $1 in
+      (name, annotP(varP(name)@@name.at,
+       funT(typparams, TypT@@at(), Pure@@at())@@at())@@at())@@at() }
 /*
   | LPAR decon RPAR
     { $2 }
