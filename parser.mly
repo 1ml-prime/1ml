@@ -81,6 +81,14 @@ head :
   | HOLE
     { "_"@@at() }
 ;
+implparam :
+  | TICK LPAR head COLON TYPE RPAR
+    { let b, _ = headP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
+  | TICK LPAR TYPE head RPAR
+    { let b, _ = headP($4) in (b, TypT@@ati 3, Impl@@ati 1)@@at() }
+  | TICK head
+    { let b, _ = headP($2) in (b, TypT@@ati 1, Impl@@ati 1)@@at() }
+;
 annparam :
   | LPAR head COLON typ RPAR
     { let b, _ = headP($2) in (b, $4, Expl@@ati 3)@@at() }
@@ -88,22 +96,14 @@ annparam :
     { let b, _ = headP($3) in
       (b, funT($4, TypT@@ati 2, Pure@@ati 2)@@span[ati 2; ati 4],
         Expl@@ati 2)@@at() }
-  | TICK LPAR head COLON TYPE RPAR
-    { let b, _ = headP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
-  | TICK LPAR TYPE head RPAR
-    { let b, _ = headP($4) in (b, TypT@@ati 3, Impl@@ati 1)@@at() }
-  | TICK head
-    { let b, _ = headP($2) in (b, TypT@@at(), Impl@@ati 1)@@at() }
+  | implparam
+    { $1 }
 ;
 param :
   | atpat
     { let b, t = (defaultP $1).it in (b, t, Expl@@at())@@at() }
-  | TICK LPAR head COLON TYPE RPAR
-    { let b, _ = headP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
-  | TICK LPAR TYPE head RPAR
-    { let b, _ = headP($4) in (b, TypT@@ati 3, Impl@@ati 1)@@at() }
-  | TICK head
-    { let b, _ = headP($2) in (b, TypT@@at(), Impl@@ati 1)@@at() }
+  | implparam
+    { $1 }
 ;
 paramlist :
   |
