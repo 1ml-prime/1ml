@@ -176,6 +176,13 @@ typlist :
     { $1::$3 }
 ;
 
+optannot :
+  |
+    { None }
+  | COLON typ
+    { Some $2 }
+;
+
 atdec :
   | name typparamlist COLON typ
     { VarD($1, funT($2, $4, Pure@@ati 2)@@span[ati 2; ati 4])@@at() }
@@ -305,12 +312,10 @@ infexp :
     { andE($1, $3)@@at() }
 ;
 annexp :
-  | infexp
-    { $1 }
+  | infexp optannot
+    { opt annotE($1, $2)@@at() }
   | TYPE typ
     { TypE($2)@@at() }
-  | annexp COLON typ
-    { annotE($1, $3)@@at() }
   | annexp SEAL typ
     { sealE($1, $3)@@at() }
   | WRAP infexp COLON typ
@@ -321,10 +326,8 @@ annexp :
 inexp :
   | annexp
     { $1 }
-  | IF exp THEN exp ELSE infexp COLON typ
-    { ifE($2, $4, $6, $8)@@at() }
-  | IF exp THEN exp ELSE infexp
-    { ifE($2, $4, $6, HoleT@@ati 1)@@at() }
+  | IF exp THEN exp ELSE infexp optannot
+    { ifE($2, $4, $6, match $7 with None -> HoleT@@ati 1 | Some t -> t)@@at() }
 ;
 exp :
   | LET bind IN exp
@@ -347,11 +350,9 @@ explist :
 ;
 
 atbind :
-  | head param paramlist EQUAL exp
-    { VarB($1, funE($2::$3, $5)@@span[ati 2; ati 5])@@at() }
-  | head param paramlist COLON typ EQUAL exp
-    { VarB($1, funE($2::$3, annotE($7, $5)@@span[ati 5; ati 7])
-        @@span[ati 2; ati 7])@@at() }
+  | head param paramlist optannot EQUAL exp
+    { VarB($1, funE($2::$3, opt annotE($6, $4)@@span[ati 4; ati 6])
+        @@span[ati 2; ati 6])@@at() }
   | head paramlist SEAL typ EQUAL exp
     { VarB($1, funE($2, sealE($6, $4)@@span[ati 4; ati 6])
         @@span[ati 2; ati 6])@@at() }
@@ -408,10 +409,8 @@ apppat :
     { rollP($3, PathT(VarE($2)@@ati 2)@@ati 2)@@at() }
 ;
 annpat :
-  | apppat
-    { $1 }
-  | annpat COLON typ
-    { annotP($1, $3)@@at() }
+  | apppat optannot
+    { opt annotP($1, $2)@@at() }
   | WRAP apppat COLON typ
     { wrapP($2, $4)@@at() }
 ;
@@ -429,14 +428,10 @@ patlist :
 ;
 
 atdecon :
-  | name EQUAL pat
-    { [($1, $3)@@at()] }
-  | name
-    { [($1, varP($1.it@@at())@@at())@@at()] }
-  | name COLON typ EQUAL pat
-    { [($1, annotP($5, $3)@@span[ati 2; ati 5])@@at()] }
-  | name COLON typ
-    { [($1, annotP(varP($1.it@@ati 1)@@ati 1, $3)@@at())@@at()] }
+  | name optannot EQUAL pat
+    { [($1, opt annotP($4, $2)@@span[ati 2; ati 4])@@at()] }
+  | name optannot
+    { [($1, opt annotP(varP($1)@@ati 1, $2)@@at())@@at()] }
   | name typparam typparamlist COLON typ
     { [($1, annotP(varP($1)@@$1.at,
         funT($2::$3, $5, Pure@@at())@@at())@@at())@@at()] }
