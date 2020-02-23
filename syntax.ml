@@ -101,6 +101,11 @@ let strE(b) =
   | InclB(e) -> e.it
   | _ -> StrE(b)
 
+let opt fn (e, t) =
+  match t with
+  | None -> e.it
+  | Some t -> fn(e, t)
+
 (* Sugar *)
 
 let letE(b, e) =
