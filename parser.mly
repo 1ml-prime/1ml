@@ -429,15 +429,15 @@ patlist :
 
 atdecon :
   | name optannot EQUAL pat
-    { [($1, opt annotP($4, $2)@@span[ati 2; ati 4])@@at()] }
+    { ($1, opt annotP($4, $2)@@span[ati 2; ati 4])@@at() }
   | name optannot
-    { [($1, opt annotP(varP($1)@@ati 1, $2)@@at())@@at()] }
+    { ($1, opt annotP(varP($1)@@ati 1, $2)@@at())@@at() }
   | name typparam typparamlist COLON typ
-    { [($1, annotP(varP($1)@@$1.at,
-        funT($2::$3, $5, Pure@@at())@@at())@@at())@@at()] }
+    { ($1, annotP(varP($1)@@$1.at,
+       funT($2::$3, $5, Pure@@at())@@at())@@at())@@at() }
   | TYPE name typparamlist
-    { [($2, annotP(varP($2.it@@ati 2)@@ati 2,
-        funT($3, TypT@@ati 1, Pure@@ati 1)@@at())@@at())@@at()] }
+    { ($2, annotP(varP($2.it@@ati 2)@@ati 2,
+       funT($3, TypT@@ati 1, Pure@@ati 1)@@at())@@at())@@at() }
 /*
   | LPAR decon RPAR
     { $2 }
@@ -447,9 +447,9 @@ decon :
   |
     { [] }
   | atdecon
-    { $1 }
+    { [$1] }
   | atdecon COMMA decon
-    { $1 @ $3 }
+    { $1::$3 }
 ;
 
 prog :
