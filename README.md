@@ -172,6 +172,8 @@ D ::= ...
     X A1 ... An = E                 ~> X : A1 -> ... -> An -> (= E)
     type X A1 ... An                ~> X : A1 => ... => An => type
     type X A1 ... An = T            ~> X : A1 => ... => An => (= type T)
+    type (A1 SYM A2) A3 ... An      ~> type (SYM) A1 ... An
+    type (A1 SYM A2) A3 ... An = T  ~> type (SYM) A1 ... An = T
     let B in T                      ~> ...let B in T
     local B in D                    ~> ...let B in {D}  [4]
     X                               ~> X : (= X)
@@ -205,6 +207,7 @@ P ::=
     {..., type X A1 ... An, ...}    ~> {..., X : A1 => ... => An => type, ...}
     (P1, ..., Pn)                   ~> {_1 = P1, ..., _n = Pn}
     (type X A1 ... An)              ~> (X : A1 => ... => An => type)
+    (type (A1 SYM A2) A3 ... An)    ~> (type (SYM) A1 ... An)
     wrap P : T                      ~> ...let $ = unwrap $ : T in {P = $}
     @T P                            ~> ...let $ = $.@T in {P = $}
     P : T                           ~> P = $ : T
@@ -217,7 +220,11 @@ B ::= ...
     X A1 ... An = E                 ~> X = fun A1 ... An => E
     X A1 ... An : T = E             ~> X = fun A1 ... An => E : T
     X A1 ... An :> T = E            ~> X = fun A1 ... An => E :> T
+    (A1 SYM A2) A3 ... An = E       ~> (SYM) A1 ... An = E
+    (A1 SYM A2) A3 ... An : T = E   ~> (SYM) A1 ... An : T = E
+    (A1 SYM A2) A3 ... An :> T = E  ~> (SYM) A1 ... An :> T = E
     type X A1 ... An = T            ~> X = fun A1 ... An => type T
+    type (A1 SYM A2) A3 ... An = T  ~> type (SYM) A1 ... An = T
     let B in E                      ~> ...let B in E
     local B1 in B2                  ~> ...let B1 in {B2}  [4]
     do E                            ~> ...let _ = E in {}
