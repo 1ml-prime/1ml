@@ -35,8 +35,12 @@ MkArray = rec (mkArray : int ~> ARRAY) => fun n =>
 
 printArray 't (A : ARRAY) (pr : t ~> ()) a =
   let loop = rec loop => fun i =>
-    if i == A.dim then print "\n"
-    else (pr (A.sub a i) ; print " " ; loop (i + 1))
+    if i == A.dim then
+      print "\n"
+    else
+      pr (A.sub a i)
+      print " "
+      loop (i + 1)
   loop 0
 
 A32 = MkArray 5
@@ -93,5 +97,5 @@ nthstate = rec (nthstate : int ~> Sieve.state) => fun n =>
 nthprime n = Sieve.value (nthstate n)
 
 printprimes = rec loop => fun n =>
-  if n == 0 then () else (loop (n - 1) ; Int.print (nthprime n) ; print "\n")
+  if n == 0 then () else loop (n - 1) ; Int.print (nthprime n) ; print "\n"
 do printprimes 20
