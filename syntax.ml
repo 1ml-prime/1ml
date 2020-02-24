@@ -108,6 +108,13 @@ let letE(b, e) =
   let b2 = VarB(x'@@e.at, e)@@e.at in
   DotE(strE(seqB(b, b2)@@span[b.at; e.at])@@span[b.at; e.at], x'@@e.at)
 
+let asVarE(e, n, k) =
+  match e.it with
+  | VarE(x) -> (k x).it
+  | _ ->
+    let x = var n@@e.at in
+    letE(VarB(x, e)@@e.at, k x)
+
 let letT(b, t) = PathT(letE(b, TypE(t)@@t.at)@@span[b.at; t.at])
 let letD(b, d) = InclD(letT(b, StrT(d)@@d.at)@@span[b.at; d.at])
 let letB(b, b') = InclB(letE(b, strE(b')@@b'.at)@@span[b.at; b'.at])
@@ -162,12 +169,7 @@ let seqE(l, r) =
   letE(VarB("_"@@l.at, l)@@l.at, r)
 
 let ifE(e1, e2, e3, t) =
-  match e1.it with
-  | VarE(x) -> IfE(x, e2, e3, t)
-  | _ ->
-    let x' = var "if" in
-    let e = IfE(x'@@e1.at, e2, e3, t)@@span[e1.at; t.at] in
-    letE(VarB(x'@@e1.at, e1)@@e1.at, e)
+  asVarE(e1, "if", fun x -> IfE(x, e2, e3, t)@@span[e1.at; t.at])
 
 let orE(e1, e2) =
   ifE(e1, PrimE(Prim.BoolV(true))@@e1.at, e2,
@@ -177,49 +179,21 @@ let andE(e1, e2) =
     PrimT("bool")@@span[e1.at; e2.at])
 
 let appE(e1, e2) =
-  match e1.it, e2.it with
-  | VarE(x1), VarE(x2) -> AppE(x1, x2)
-  | VarE(x1), _ ->
-    let x2' = var "app2" in
-    letE(VarB(x2'@@e2.at, e2)@@e2.at, AppE(x1, x2'@@e2.at)@@span[e1.at; e2.at])
-  | _, VarE(x2) ->
-    let x1' = var "app1" in
-    letE(VarB(x1'@@e1.at, e1)@@e1.at, AppE(x1'@@e1.at, x2)@@span[e1.at; e2.at])
-  | _, _ ->
-    let x1' = var "app1" in
-    let x2' = var "app2" in
-    let b1 = VarB(x1'@@e1.at, e1)@@e1.at in
-    let b2 = VarB(x2'@@e2.at, e2)@@e2.at in
-    let b = seqB(b1, b2)@@span[e1.at; e2.at] in
-    letE(b, AppE(x1'@@e1.at, x2'@@e2.at)@@span[e1.at; e2.at])
+  asVarE(e1, "app1", fun x1 ->
+  asVarE(e2, "app2", fun x2 ->
+  AppE(x1, x2)@@span[e1.at; e2.at])@@span[e1.at; e2.at])
 
 let wrapE(e, t) =
-  match e.it with
-  | VarE(x) -> WrapE(x, t)
-  | _ ->
-    let x' = var "wrap" in
-    letE(VarB(x'@@e.at, e)@@e.at, WrapE(x'@@e.at, t)@@span[e.at; t.at])
+  asVarE(e, "wrap", fun x -> WrapE(x, t)@@span[e.at; t.at])
 
 let unwrapE(e, t) =
-  match e.it with
-  | VarE(x) -> UnwrapE(x, t)
-  | _ ->
-    let x' = var "wrap" in
-    letE(VarB(x'@@e.at, e)@@e.at, UnwrapE(x'@@e.at, t)@@span[e.at; t.at])
+  asVarE(e, "unwrap", fun x -> UnwrapE(x, t)@@span[e.at; t.at])
 
 let rollE(e, t) =
-  match e.it with
-  | VarE(x) -> RollE(x, t)
-  | _ ->
-    let x' = var "@" in
-    letE(VarB(x'@@e.at, e)@@e.at, RollE(x'@@e.at, t)@@span[e.at; t.at])
+  asVarE(e, "roll", fun x -> RollE(x, t)@@span[e.at; t.at])
 
 let unrollE(e, t) =
-  match e.it with
-  | VarE(x) -> UnrollE(x, t)
-  | _ ->
-    let x' = var "@" in
-    letE(VarB(x'@@e.at, e)@@e.at, UnrollE(x'@@e.at, t)@@span[e.at; t.at])
+  asVarE(e, "unroll", fun x -> UnrollE(x, t)@@span[e.at; t.at])
 
 let annotE(e, t) =
   let x' = var "annot" in
