@@ -101,6 +101,10 @@ module Offside = struct
     | SYM text -> String.length text + 1
     | _ -> 0
 
+  let expect expected =
+    get >>= fun (token, column) ->
+    if token <> expected then error "unexpected" else emit token
+
   let rec inside_braces break insert indent (token, column) =
     match token with
     | EOF | RBRACE -> if token = break then emit token else error "unexpected"
@@ -111,7 +115,7 @@ module Offside = struct
     | _ ->
       if column < indent then error "offside" else
         emit_if (column = indent && insert) COMMA >>
-        nest token >>
+        nest (token, column) >>
         get >>= inside_braces break (token <> LOCAL) indent
 
   and inside_local insert indent (token, column) =
@@ -128,7 +132,7 @@ module Offside = struct
         emit IN
       else
         emit_if (column = indent && insert) COMMA >>
-        nest token >>
+        nest (token, column) >>
         get >>= inside_local (token <> LOCAL) indent
 
   and inside_let insert indent (token, column) =
@@ -147,12 +151,12 @@ module Offside = struct
         inside_in false column (token, column)
       else
         emit_if (column = indent && insert) COMMA >>
-        nest token >>
+        nest (token, column) >>
         get >>= inside_let (token <> LOCAL) indent
 
   and inside_in insert indent (token, column) =
     match token with
-    | RBRACE | COMMA | IN | EOF | RPAR -> unget (token, column)
+    | RBRACE | COMMA | IN | EOF | RPAR | ELSE | THEN -> unget (token, column)
     | SEMI ->
       if column < indent - 2 then error "offside" else
         emit token >>
@@ -162,46 +166,68 @@ module Offside = struct
       emit token >>
       get >>= fun (token, column) ->
       inside_let false column (token, column)
-    | THEN | ELSE ->
-      if column < indent then error "offside" else
-        emit token >>
-        get >>= inside_in true indent
     | _ ->
       let slack = slack_of token in
       if column < indent - slack then unget (token, column) else
         emit_if (slack = 0 && column = indent && insert) SEMI >>
-        nest token >>
-        get >>= inside_in (slack = 0 && indent < column) indent
+        nest (token, column) >>
+        get >>= inside_in (slack = 0 && indent <= column) indent
 
-  and inside_parens (token, column) =
+  and inside_parens indent (token, column) =
     match token with
     | RPAR -> emit token
-    | _ -> nest token >> get >>= inside_parens
-
-  and nest token =
-    match token with
-    | FUN | REC ->
-      emit LPAR >> emit token
-    | _ ->
+    | COMMA ->
       emit token >>
-      match token with
-      | LBRACE ->
+      get >>= inside_parens indent
+    | _ ->
+      nest (token, column) >>
+      get >>= inside_in false indent >>
+      get >>= inside_parens indent
+
+  and inside_if indent =
+      get >>= fun (token, column) ->
+      inside_in false column (token, column) >>
+      expect THEN >>
+      get >>= fun (token, column) ->
+      inside_in false column (token, column) >>
+      get >>= fun (token, column) ->
+      if token = ELSE && indent <= column then
+        emit token >>
         get >>= fun (token, column) ->
-        inside_braces RBRACE false column (token, column)
-      | LPAR ->
-        get >>= inside_parens
-      | LET ->
-        get >>= fun (token, column) -> inside_let false column (token, column)
-      | LOCAL ->
-        get >>= fun (token, column) -> inside_local false column (token, column)
-      | DARROW ->
-        get >>= fun (token, column) ->
-        inside_in false column (token, column) >>
-        emit RPAR
-      | EQUAL | DO ->
-        get >>= fun (token, column) -> inside_in false column (token, column)
-      | _ ->
-        unit
+        if token = IF then
+          emit token >>
+          inside_if indent
+        else
+          inside_in false column (token, column)
+      else
+        emit ELSE >> emit LBRACE >> emit RBRACE >>
+        unget (token, column)
+
+  and nest (token, column) =
+    (match token with FUN | REC | IF -> emit LPAR | _ -> unit) >>
+    emit token >>
+    match token with
+    | LBRACE ->
+      get >>= fun (token, column) ->
+      inside_braces RBRACE false column (token, column)
+    | LPAR ->
+      get >>= fun (token, column) ->
+      inside_parens column (token, column)
+    | LET ->
+      get >>= fun (token, column) -> inside_let false column (token, column)
+    | LOCAL ->
+      get >>= fun (token, column) -> inside_local false column (token, column)
+    | DARROW ->
+      get >>= fun (token, column) ->
+      inside_in false column (token, column) >>
+      emit RPAR
+    | EQUAL | DO ->
+      get >>= fun (token, column) -> inside_in false column (token, column)
+    | IF ->
+      inside_if column >>
+      emit RPAR
+    | _ ->
+      unit
 
   type state = (unit monad * (Parser.token * int) option) ref
 

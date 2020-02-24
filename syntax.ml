@@ -46,13 +46,14 @@ and exp' =
   | FunE of var * typ * exp * impl
   | WrapE of var * typ
   | RollE of var * typ
-  | IfE of var * exp * exp * typ
+  | IfE of var * exp * exp
   | DotE of exp * var
   | AppE of var * var
   | UnwrapE of var * typ
   | UnrollE of var * typ
   | RecE of var * typ * exp
   | ImportE of path
+  | AnnotE of exp * typ
 
 and bind = (bind', unit) phrase
 and bind' =
@@ -180,15 +181,17 @@ let doB(e) = letB(VarB("_"@@e.at, e)@@e.at, EmptyB@@e.at)
 let seqE(l, r) =
   letE(VarB("_"@@l.at, l)@@l.at, r)
 
-let ifE(e1, e2, e3, t) =
-  asVarE(e1, "if", fun x -> IfE(x, e2, e3, t)@@span[e1.at; t.at])
+let ifE(e1, e2, e3) =
+  let at = span[e1.at; e3.at] in
+  let ifE = asVarE(e1, "if", fun x -> IfE(x, e2, e3)@@at) in
+  match e3.it with
+  | AnnotE(_, t) -> AnnotE(ifE@@at, t)
+  | _ -> ifE
 
 let orE(e1, e2) =
-  ifE(e1, PrimE(Prim.BoolV(true))@@e1.at, e2,
-    PrimT("bool")@@span[e1.at; e2.at])
+  ifE(e1, PrimE(Prim.BoolV(true))@@e1.at, e2)
 let andE(e1, e2) =
-  ifE(e1, e2, PrimE(Prim.BoolV(false))@@e1.at,
-    PrimT("bool")@@span[e1.at; e2.at])
+  ifE(e1, e2, PrimE(Prim.BoolV(false))@@e1.at)
 
 let appE(e1, e2) =
   asVarE(e1, "app1", fun x1 ->
@@ -207,9 +210,7 @@ let rollE(e, t) =
 let unrollE(e, t) =
   asVarE(e, "unroll", fun x -> UnrollE(x, t)@@span[e.at; t.at])
 
-let annotE(e, t) =
-  let x' = var "annot" in
-  appE(FunE(x'@@t.at, t, VarE(x'@@t.at)@@t.at, Expl@@t.at)@@span[e.at; t.at], e)
+let annotE(e, t) = AnnotE(e, t)
 
 let sealE(e, t) =
   (* TODO: clone t! *)
@@ -384,6 +385,7 @@ let label_of_exp e =
   | UnrollE _ -> "UnrollE"
   | RecE _ -> "RecE"
   | ImportE _ -> "ImportE"
+  | AnnotE _ -> "AnnotE"
 
 let label_of_bind b =
   match b.it with
@@ -435,14 +437,15 @@ and string_of_exp e =
     node' [string_of_var x; string_of_typ t; string_of_exp e; string_of_impl i]
   | WrapE(x, t) -> node' [string_of_var x; string_of_typ t]
   | RollE(x, t) -> node' [string_of_var x; string_of_typ t]
-  | IfE(x, e1, e2, t) ->
-    node' [string_of_var x; string_of_exp e1; string_of_exp e2; string_of_typ t]
+  | IfE(x, e1, e2) ->
+    node' [string_of_var x; string_of_exp e1; string_of_exp e2]
   | DotE(e, x) -> node' [string_of_exp e; string_of_var x]
   | AppE(x1, x2) -> node' [string_of_var x1; string_of_var x2]
   | UnwrapE(x, t) -> node' [string_of_var x; string_of_typ t]
   | UnrollE(x, t) -> node' [string_of_var x; string_of_typ t]
   | RecE(x, t, e) -> node' [string_of_var x; string_of_typ t; string_of_exp e]
   | ImportE(p) -> node' ["\"" ^ String.escaped p.it ^ "\""]
+  | AnnotE(e, t) -> node' [string_of_exp e; string_of_typ t]
 
 and string_of_bind b =
   let node' = node (label_of_bind b) in
@@ -484,13 +487,14 @@ and imports_exp exp =
   | FunE(_, typ, exp, _) -> imports_typ typ @ imports_exp exp
   | WrapE(_, typ) -> imports_typ typ
   | RollE(_, typ) -> imports_typ typ
-  | IfE(_, exp1, exp2, typ) -> imports_exp exp1 @ imports_exp exp2 @ imports_typ typ
+  | IfE(_, exp1, exp2) -> imports_exp exp1 @ imports_exp exp2
   | DotE(exp, _) -> imports_exp exp
   | AppE _ -> []
   | UnwrapE(_, typ) -> imports_typ typ
   | UnrollE(_, typ) -> imports_typ typ
   | RecE(_, typ, exp) -> imports_typ typ @ imports_exp exp
   | ImportE path -> [path]
+  | AnnotE(exp, typ) -> imports_exp exp @ imports_typ typ
 
 and imports_bind bind =
   match bind.it with
