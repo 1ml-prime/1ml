@@ -160,6 +160,11 @@ let rec instantiate env t e =
 
 (* Type Elaboration *)
 
+let split_annot exp =
+  match exp.it with
+  | EL.AnnotE(e, t) -> e, t
+  | _ -> exp, EL.HoleT@@exp.at
+
 let elab_impl env impl =
   match impl.it with
   | EL.Expl -> Explicit Pure
@@ -422,13 +427,14 @@ Trace.debug (lazy ("[FunE] env =" ^ VarSet.fold (fun a s -> s ^ " " ^ a) (domain
     ExT([], roll_t), Pure, zs1 @ zs2,
     IL.RollE(IL.AppE(f, IL.VarE(var.it)), erase_typ roll_t)
 
-  | EL.IfE(var, exp1, exp2, typ) ->
+  | EL.IfE(var, exp1, exp2) ->
     let t0, zs0, ex = elab_instvar env var in
     let _ =
       match t0 with
       | PrimT(Prim.BoolT) -> ()
       | InferT(z) -> resolve_always z (PrimT(Prim.BoolT))
       | _ -> error var.at "condition is not Boolean" in
+    let exp2, typ = split_annot exp2 in
     let ExT(aks, t) as s, zs = elab_typ env typ l in
     let s1, p1, zs1, e1 = elab_exp env exp1 l in
     let s2, p2, zs2, e2 = elab_exp env exp2 l in
@@ -575,6 +581,13 @@ Trace.debug (lazy ("[RecT] t = " ^ string_of_norm_typ t));
     | None -> Source.error path.at ("\""^path.it^"\" does not resolve to a file")
     | Some canonic ->
       ExT([], lookup_var env (canonic@@path.at)), Pure, [], IL.VarE(canonic))
+
+  | EL.AnnotE(e, t) ->
+    let exp =
+      let open Syntax in
+      let x' = var "annot" in
+      appE(FunE(x'@@t.at, t, VarE(x'@@t.at)@@t.at, Expl@@t.at)@@span[e.at; t.at], e)@@exp.at in
+    elab_exp env exp l
 
 (*
 rec (X : (b : type) => {type t; type u a}) fun (b : type) => {type t = (X int.u b, X bool.t); type u a = (a, X b.t)}
