@@ -366,18 +366,14 @@ annexp :
   | annexp annexp_op typ
     { $2($1, $3)@@at() }
 ;
-inexp :
-  | annexp
-    { $1 }
-  | IF exp THEN exp ELSE infexp optannot
-    { ifE($2, $4, $6, match $7 with None -> HoleT@@ati 1 | Some t -> t)@@at() }
-;
 exp :
   | LET bind IN exp
     { letE($2, $4)@@at() }
-  | inexp SEMI exp
+  | IF exp THEN exp ELSE exp
+    { ifE($2, $4, $6)@@at() }
+  | annexp SEMI exp
     { seqE($1, $3)@@at() }
-  | inexp
+  | annexp
     { $1 }
   | FUN param paramlist bindanns_opt DARROW exp
     { funE($2::$3, $4($6))@@at() }

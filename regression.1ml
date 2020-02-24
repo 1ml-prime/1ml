@@ -6,6 +6,22 @@ record_inference x = x.works_a_little
 
 ;;
 
+conditionals b : int =
+  if b then print "then1" else print "else1"
+  print "between"
+  if not b then
+    print "then2"
+    if b then print "then3"
+  else print "else2"
+  101
+
+aType i =
+  if i == 0 then int
+  else if i == 1 then text
+  else char : type
+
+;;
+
 type DEC_PUNNING = {int, list}
 
 ;;

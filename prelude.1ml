@@ -20,7 +20,7 @@ Bool = {
   true = primitive "true" ()
   false = primitive "false" ()
   not b = if b then false else true
-  print b = primitive "Text.print" (if b then "true" else "false")
+  print b = primitive "Text.print" if b then "true" else "false"
 }
 type bool = Bool.t
 true = Bool.true

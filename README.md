@@ -357,7 +357,7 @@ The `rec` expression form allows defining recursive functions:
 
 ```1ml
 count = rec self => fun i =>
-  if i == 0 then () else self (i - 1)
+  if i <> 0 then self (i - 1)
 
 repeat = rec self => fun x =>
   {hd = x, tl = fun () => some (self x)} :@ stream

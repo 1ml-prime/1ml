@@ -56,7 +56,7 @@ do Int.print (single 7 @: stream).hd   ;; e @: t unrolls rec value directly
 
 
 count = rec self => fun i =>
-  if i == 0 then () else self (i - 1)
+  if i <> 0 then self (i - 1)
 
 repeat = rec self => fun x =>
   {hd = x, tl = fun () => some (self x)} :@ stream
