@@ -385,13 +385,13 @@ atpat :
   | head
     { headP $1 }
   | LBRACE decon RBRACE
-    { strP($2)@@at() }
+    { strP($2, at())@@at() }
   | LPAR RPAR
-    { strP([])@@at() }
+    { strP([], at())@@at() }
   | LPAR head typparam typparamlist COLON typ RPAR
     { annotP(varP($2)@@$2.at, funT($3::$4, $6, Pure@@at())@@at())@@at() }
   | LPAR patlist RPAR
-    { match $2 with [p] -> p | ps -> tupP(ps)@@at() }
+    { match $2 with [p] -> p | ps -> tupP(ps, at())@@at() }
   | LPAR TYPE head typparamlist RPAR
     { annotP(headP $3, funT($4, TypT@@ati 2, Pure@@ati 2)@@at())@@at() }
 ;
