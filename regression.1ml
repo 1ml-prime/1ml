@@ -39,6 +39,16 @@ typparams_allowed (id 'a: a => a) ({alsoId 'x: x => x}) =
 
 ;;
 
+type_error {
+  inconsistent_empty_and_annpat ({}: int) = ();
+};
+
+type_error {
+  inconsistent_nested_annpats ((x: int): text) = ();
+};
+
+;;
+
 type_error { type_error 101 };
 
 ;;
