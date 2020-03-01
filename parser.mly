@@ -82,27 +82,27 @@ head :
 ;
 annparam :
   | LPAR head COLON typ RPAR
-    { let b, _ = varP($2) in (b, $4, Expl@@ati 3)@@at() }
+    { let b, _ = headP($2) in (b, $4, Expl@@ati 3)@@at() }
   | LPAR TYPE head typparamlist RPAR
-    { let b, _ = varP($3) in
+    { let b, _ = headP($3) in
       (b, funT($4, TypT@@ati 2, Pure@@ati 2)@@span[ati 2; ati 4],
         Expl@@ati 2)@@at() }
   | TICK LPAR head COLON TYPE RPAR
-    { let b, _ = varP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
+    { let b, _ = headP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
   | TICK LPAR TYPE head RPAR
-    { let b, _ = varP($4) in (b, TypT@@ati 3, Impl@@ati 1)@@at() }
+    { let b, _ = headP($4) in (b, TypT@@ati 3, Impl@@ati 1)@@at() }
   | TICK head
-    { let b, _ = varP($2) in (b, TypT@@at(), Impl@@ati 1)@@at() }
+    { let b, _ = headP($2) in (b, TypT@@at(), Impl@@ati 1)@@at() }
 ;
 param :
   | atpat
     { let b, t = (defaultP $1).it in (b, t, Expl@@at())@@at() }
   | TICK LPAR head COLON TYPE RPAR
-    { let b, _ = varP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
+    { let b, _ = headP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
   | TICK LPAR TYPE head RPAR
-    { let b, _ = varP($4) in (b, TypT@@ati 3, Impl@@ati 1)@@at() }
+    { let b, _ = headP($4) in (b, TypT@@ati 3, Impl@@ati 1)@@at() }
   | TICK head
-    { let b, _ = varP($2) in (b, TypT@@at(), Impl@@ati 1)@@at() }
+    { let b, _ = headP($2) in (b, TypT@@at(), Impl@@ati 1)@@at() }
 ;
 paramlist :
   |
@@ -159,7 +159,7 @@ typ :
   | annparam arrow typ
     { funT([$1], $3, $2)@@at() }
   | withtyp arrow typ
-    { let b, _ = varP("_"@@ati 1) in
+    { let b, _ = headP("_"@@ati 1) in
       funT([(b, $1, Expl@@ati 2)@@ati 1], $3, $2)@@at() }
   | WRAP typ
     { WrapT($2)@@at() }
@@ -381,7 +381,7 @@ bind :
 
 atpat :
   | head
-    { if $1.it = "_" then holeP@@at() else varP($1)@@at() }
+    { headP $1@@at() }
   | LBRACE decon RBRACE
     { strP($2, at())@@at() }
   | LPAR RPAR
