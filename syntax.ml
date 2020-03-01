@@ -79,12 +79,24 @@ let typParam param =
 let typParamList paramList =
   List.map typParam paramList
 
+let seqD(l, r) =
+  match l.it, r.it with
+  | EmptyD, _ -> r.it
+  | _, EmptyD -> l.it
+  | _ -> SeqD(l, r)
+
+let seqB(l, r) =
+  match l.it, r.it with
+  | EmptyB, _ -> r.it
+  | _, EmptyB -> l.it
+  | _ -> SeqB(l, r)
+
 (* Sugar *)
 
 let letE(b, e) =
   let x' = var "let" in
   let b2 = VarB(x'@@e.at, e)@@e.at in
-  DotE(StrE(SeqB(b, b2)@@span[b.at; e.at])@@span[b.at; e.at], x'@@e.at)
+  DotE(StrE(seqB(b, b2)@@span[b.at; e.at])@@span[b.at; e.at], x'@@e.at)
 
 let letT(b, t) = PathT(letE(b, TypE(t)@@t.at)@@span[b.at; t.at])
 let letB(b, b') = InclB(letE(b, StrE(b')@@b'.at)@@span[b.at; b'.at])
@@ -94,7 +106,7 @@ and tupT' n = function
   | [] -> EmptyD@@nowhere_region
   | t::ts ->
     let d = tupT' (n + 1) ts in
-    SeqD(VarD((index n)@@t.at, t)@@t.at, d)@@
+    seqD(VarD((index n)@@t.at, t)@@t.at, d)@@
       (match d.it with EmptyD -> t.at | _ -> span[t.at; d.at])
 
 let rec tupE(es) = StrE(tupE' 1 es)
@@ -102,7 +114,7 @@ and tupE' n = function
   | [] -> EmptyB@@nowhere_region
   | e::es ->
     let b = tupE' (n + 1) es in
-    SeqB(VarB((index n)@@e.at, e)@@e.at, b)@@
+    seqB(VarB((index n)@@e.at, e)@@e.at, b)@@
       (match b.it with EmptyB -> e.at | _ -> span[e.at; b.at])
 
 let rec funT(ps, t, f) = (funT'(ps, t, f)).it
@@ -138,7 +150,7 @@ let doB(e) = letB(VarB("_"@@e.at, e)@@e.at, EmptyB@@e.at)
 
 let seqE(es) =
   let b =
-    List.fold_right (fun e b -> SeqB(doB(e)@@e.at, b)@@span[e.at; b.at])
+    List.fold_right (fun e b -> seqB(doB(e)@@e.at, b)@@span[e.at; b.at])
       es (EmptyB@@(after (Lib.List.last es).at))
   in
   doE(StrE(b)@@@(List.map at es))
@@ -172,7 +184,7 @@ let appE(e1, e2) =
     let x2' = var "app2" in
     let b1 = VarB(x1'@@e1.at, e1)@@e1.at in
     let b2 = VarB(x2'@@e2.at, e2)@@e2.at in
-    let b = SeqB(b1, b2)@@span[e1.at; e2.at] in
+    let b = seqB(b1, b2)@@span[e1.at; e2.at] in
     letE(b, AppE(x1'@@e1.at, x2'@@e2.at)@@span[e1.at; e2.at])
 
 let wrapE(e, t) =
@@ -271,7 +283,7 @@ let asTopt(to1, to2) =
 let asP(p1, p2) =
   let b1, to1 = p1.it in
   let b2, to2 = p2.it in
-  SeqB(b1.it@@p1.at, b2.it@@p2.at)@@span[p1.at; p2.at], asTopt(to1, to2)
+  seqB(b1.it@@p1.at, b2.it@@p2.at)@@span[p1.at; p2.at], asTopt(to1, to2)
 
 let annotP(p, t2) =
   let b, to1 = p.it in
@@ -304,9 +316,9 @@ let strP(xps, region) =
       List.fold_right (fun xp (b, d) ->
         let x, p = xp.it in
         let _, t = (defaultP p).it in
-        SeqB(patB(p, DotE(VarE("$"@@xp.at)@@xp.at, x)@@xp.at)@@xp.at, b)
+        seqB(patB(p, DotE(VarE("$"@@xp.at)@@xp.at, x)@@xp.at)@@xp.at, b)
           @@span[b.at; p.at],
-        SeqD(VarD(x, t.it@@p.at)@@xp.at, d)@@span[d.at; p.at]
+        seqD(VarD(x, t.it@@p.at)@@xp.at, d)@@span[d.at; p.at]
       ) xps (EmptyB@@xp.at, EmptyD@@xp.at)
     in b, Some (StrT(d)@@d.at)
 
