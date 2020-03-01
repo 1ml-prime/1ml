@@ -91,17 +91,27 @@ let seqB(l, r) =
   | _, EmptyB -> l.it
   | _ -> SeqB(l, r)
 
+let strT(d) =
+  match d.it with
+  | InclD(t) -> t.it
+  | _ -> StrT(d)
+
+let strE(b) =
+  match b.it with
+  | InclB(e) -> e.it
+  | _ -> StrE(b)
+
 (* Sugar *)
 
 let letE(b, e) =
   let x' = var "let" in
   let b2 = VarB(x'@@e.at, e)@@e.at in
-  DotE(StrE(seqB(b, b2)@@span[b.at; e.at])@@span[b.at; e.at], x'@@e.at)
+  DotE(strE(seqB(b, b2)@@span[b.at; e.at])@@span[b.at; e.at], x'@@e.at)
 
 let letT(b, t) = PathT(letE(b, TypE(t)@@t.at)@@span[b.at; t.at])
-let letB(b, b') = InclB(letE(b, StrE(b')@@b'.at)@@span[b.at; b'.at])
+let letB(b, b') = InclB(letE(b, strE(b')@@b'.at)@@span[b.at; b'.at])
 
-let rec tupT(ts) = StrT(tupT' 1 ts)
+let rec tupT(ts) = strT(tupT' 1 ts)
 and tupT' n = function
   | [] -> EmptyD@@nowhere_region
   | t::ts ->
@@ -109,7 +119,7 @@ and tupT' n = function
     seqD(VarD((index n)@@t.at, t)@@t.at, d)@@
       (match d.it with EmptyD -> t.at | _ -> span[t.at; d.at])
 
-let rec tupE(es) = StrE(tupE' 1 es)
+let rec tupE(es) = strE(tupE' 1 es)
 and tupE' n = function
   | [] -> EmptyB@@nowhere_region
   | e::es ->
@@ -153,7 +163,7 @@ let seqE(es) =
     List.fold_right (fun e b -> seqB(doB(e)@@e.at, b)@@span[e.at; b.at])
       es (EmptyB@@(after (Lib.List.last es).at))
   in
-  doE(StrE(b)@@@(List.map at es))
+  doE(strE(b)@@@(List.map at es))
 
 let ifE(e1, e2, e3, t) =
   match e1.it with
@@ -224,7 +234,7 @@ let sealE(e, t) =
   unwrapE(wrapE(e, WrapT(t)@@t.at)@@span[e.at; t.at], WrapT(t)@@t.at)
 
 let dotopE(x) =
-  FunE("x"@@x.at, StrT(VarD(x, HoleT@@x.at)@@x.at)@@x.at,
+  FunE("x"@@x.at, strT(VarD(x, HoleT@@x.at)@@x.at)@@x.at,
     DotE(VarE("x"@@x.at)@@x.at, x)@@x.at, Expl@@x.at)
 
 
@@ -310,7 +320,7 @@ let wrapP(p, t2) =
 let strP(xps, region) =
   match xps with
   | [] ->
-    EmptyB@@region, Some (StrT(EmptyD@@region)@@region)
+    EmptyB@@region, Some (strT(EmptyD@@region)@@region)
   | xp::_ ->
     let b, d =
       List.fold_right (fun xp (b, d) ->
@@ -320,7 +330,7 @@ let strP(xps, region) =
           @@span[b.at; p.at],
         seqD(VarD(x, t.it@@p.at)@@xp.at, d)@@span[d.at; p.at]
       ) xps (EmptyB@@xp.at, EmptyD@@xp.at)
-    in b, Some (StrT(d)@@d.at)
+    in b, Some (strT(d)@@d.at)
 
 let rec tupP(ps, region) = strP(tupP' 1 ps, region)
 and tupP' n = function
