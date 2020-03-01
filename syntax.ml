@@ -247,8 +247,10 @@ let defaultTP p =
 
 let varP(x) = VarB(x, VarE("$"@@x.at)@@x.at)@@x.at, None
 
-let holeP : bind * typ option =
-  EmptyB@@nowhere_region, None
+let headP id =
+  if id.it = "_"
+  then EmptyB@@id.at, None
+  else varP(id)
 
 let asTopt(to1, to2) =
   match to1, to2 with
