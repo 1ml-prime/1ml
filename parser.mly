@@ -131,9 +131,9 @@ attyp :
   | TYPE
     { TypT@@at() }
   | LBRACE dec RBRACE
-    { StrT($2)@@at() }
+    { strT($2)@@at() }
   | LPAR RPAR
-    { StrT(EmptyD@@at())@@at() }
+    { strT(EmptyD@@at())@@at() }
   | LPAR typlist RPAR
     { match $2 with [t] -> t | ts -> tupT(ts)@@at() }
   | LPAR EQUAL exp RPAR
@@ -269,9 +269,9 @@ atexp :
   | TEXT
     { PrimE(Prim.TextV($1))@@at() }
   | LBRACE bind RBRACE
-    { StrE($2)@@at() }
+    { strE($2)@@at() }
   | LPAR RPAR
-    { StrE(EmptyB@@at())@@at() }
+    { strE(EmptyB@@at())@@at() }
   | LPAR explist RPAR
     { match $2 with [e] -> e | es -> tupE(es)@@at() }
   | LPAR expsemilist RPAR
@@ -455,7 +455,7 @@ decon :
 
 prog :
   | bind EOF
-    { StrE($1)@@at() }
+    { strE($1)@@at() }
 ;
 
 %%
