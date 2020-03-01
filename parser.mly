@@ -201,7 +201,7 @@ dec :
   | atdec
     { $1 }
   | atdec SEMI dec
-    { SeqD($1, $3)@@at() }
+    { seqD($1, $3)@@at() }
 ;
 
 dotpathexp :
@@ -378,7 +378,7 @@ bind :
   | atbind
     { $1 }
   | atbind SEMI bind
-    { SeqB($1, $3)@@at() }
+    { seqB($1, $3)@@at() }
 ;
 
 atpat :
