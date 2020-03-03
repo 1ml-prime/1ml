@@ -12,9 +12,14 @@ if [ "$TRAVIS" = true ]; then
     echo -e "\ntravis_fold:end:cppsm.$FOLD\r"
   }
 
-  if [ "$TRAVIS_OS_NAME" = osx ]; then
-    folded "Installing Ocaml" brew install ocaml
-  fi
+  case "$TRAVIS_OS_NAME" in
+    osx)
+      folded "Installing Ocaml" brew install ocaml;;
+    windows)
+      folded "Installing OCaml & Make" choco install -y ocpwin make
+      OCAMLC="$(find "$HOME/AppData/Roaming/OCamlPro" -name ocamlc.exe)"
+      export PATH="${OCAMLC%/*}:$PATH";;
+  esac
 else
   folded() {
     echo

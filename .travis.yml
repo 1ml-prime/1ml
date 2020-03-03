@@ -1,4 +1,4 @@
-language: minimal
+language: bash
 
 matrix:
   include:
@@ -10,6 +10,7 @@ matrix:
             - ocaml
     - os: osx
       osx_image: xcode11.3
+    - os: windows
 
 git:
   depth: 5
