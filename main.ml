@@ -15,7 +15,7 @@ let run_f_flag = ref false
 let trace_phase name = if !trace_flag then print_endline ("-- " ^ name)
 
 let load file =
-  let f = open_in file in
+  let f = open_in_bin file in
   let size = in_channel_length f in
   let source = really_input_string f size in
   close_in f;

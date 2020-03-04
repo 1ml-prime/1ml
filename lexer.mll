@@ -66,6 +66,8 @@ let name = (letter | '_') (letter | digit | '_' | tick)*
 let text = '"'character*'"'
 let char = '\''character '\''
 
+let eol = '\r'?'\n'
+
 rule token = parse
   | "_" { HOLE }
   | "&&" { LOGICAL_AND }
@@ -104,25 +106,25 @@ rule token = parse
   | symbol* as s { SYM s }
   | num as s { NUM (convert_num s) }
   | char as s { CHAR (convert_char s) }
-  | '\''character('\n'|eof) { error lexbuf "unclosed char literal" }
+  | '\''character(eol|eof) { error lexbuf "unclosed char literal" }
   | '\''character '\\'_
     { error_nest (Lexing.lexeme_end_p lexbuf) lexbuf "illegal escape" }
   | text as s { TEXT (convert_text s) }
-  | '"'character*('\n'|eof) { error lexbuf "unclosed text literal" }
+  | '"'character*(eol|eof) { error lexbuf "unclosed text literal" }
   | '"'character*'\\'_
     { error_nest (Lexing.lexeme_end_p lexbuf) lexbuf "illegal escape" }
   | ";;;;"_*eof { EOF }
-  | ";;"[^'\n']*eof { EOF }
-  | ";;"[^'\n']*'\n' { Lexing.new_line lexbuf; token lexbuf }
+  | ";;"[^'\n''\r']*eof { EOF }
+  | ";;"[^'\n''\r']*eol { Lexing.new_line lexbuf; token lexbuf }
   | "(;" { comment (Lexing.lexeme_start_p lexbuf) lexbuf; token lexbuf }
   | space { token lexbuf }
-  | '\n' { Lexing.new_line lexbuf; token lexbuf }
+  | eol { Lexing.new_line lexbuf; token lexbuf }
   | eof { EOF }
   | _ { error lexbuf "illegal character" }
 
 and comment start = parse
   | ";)" { () }
   | "(;" { comment (Lexing.lexeme_start_p lexbuf) lexbuf; comment start lexbuf }
-  | '\n' { Lexing.new_line lexbuf; comment start lexbuf }
+  | eol { Lexing.new_line lexbuf; comment start lexbuf }
   | eof { error_nest start lexbuf "unclosed comment" }
   | _ { comment start lexbuf }
