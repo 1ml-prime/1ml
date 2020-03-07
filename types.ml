@@ -726,7 +726,7 @@ let rec print_row' sep print' prec ctxt xr =
     print_break 1 2;
     open_hovbox 0;
     print' prec (enter l ctxt) x;
-    if i <> nm1 then print_string ";";
+    if i <> nm1 then print_string ",";
     close_box ();
     close_box ();
     if i <> nm1 then print_break 1 0;
