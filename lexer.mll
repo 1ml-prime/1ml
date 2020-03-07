@@ -8,10 +8,13 @@ open Parser
 type pos = {file : string; line : int; column : int}
 type region = {left : pos; right : pos}
 
+let column_pos pos =
+  pos.Lexing.pos_cnum - pos.Lexing.pos_bol
+
 let convert_pos pos =
   { Source.file = pos.Lexing.pos_fname;
     Source.line = pos.Lexing.pos_lnum;
-    Source.column = pos.Lexing.pos_cnum - pos.Lexing.pos_bol
+    Source.column = column_pos pos
   }
 
 let region lexbuf =
@@ -51,6 +54,133 @@ let convert_text s =
     incr i
   done;
   Buffer.contents b
+
+module Offside = struct
+  type 'a monad =
+    | Monad of ((Lexing.lexbuf -> Parser.token)
+                -> Lexing.lexbuf
+                -> (Parser.token * int) option
+                -> 'a result * (Parser.token * int) option)
+  and 'a result =
+    | Emit of Parser.token * 'a monad
+    | Return of 'a
+
+  let return value = Monad (fun _ _ tco -> (Return value, tco))
+  let unit = return ()
+
+  let rec (>>=) (Monad xM) xyM =
+    Monad (fun get_token lexbuf tco ->
+      match xM get_token lexbuf tco with
+      | (Emit (token, xM), tco) -> (Emit (token, xM >>= xyM), tco)
+      | (Return x, tco) -> let (Monad yM) = xyM x in yM get_token lexbuf tco)
+
+  let get =
+    Monad (fun get_token lexbuf tco ->
+      (Return (match tco with
+              | Some tc -> tc
+              | None ->
+                let token = get_token lexbuf in
+                let column = column_pos (Lexing.lexeme_start_p lexbuf) in
+                (token, column)),
+       None))
+  let unget (token, column) =
+    Monad (fun get_token lexbuf tco ->
+      match tco with
+      | Some _ -> failwith "unget"
+      | None -> (Return (), Some (token, column)))
+
+  let error message = Monad (fun _ lexbuf _ -> error lexbuf message)
+
+  let emit token = Monad (fun _ _ tco -> (Emit (token, unit), tco))
+  let emit_if bool token = if bool then emit token else unit
+
+  let rec inside_braces break insert indent (token, column) =
+    match token with
+    | EOF | RBRACE -> if token = break then emit token else error "unexpected"
+    | COMMA ->
+      if column < indent - 2 then error "offside" else
+        emit token >>= fun () ->
+        get >>= inside_braces break false indent
+    | _ ->
+      if column < indent then error "offside" else
+        emit_if (column = indent && insert) COMMA >>= fun () ->
+        nest token >>= fun () ->
+        get >>= inside_braces break true indent
+
+  and inside_let insert indent (token, column) =
+    match token with
+    | IN ->
+      emit token >>= fun () ->
+      get >>= fun (token, column) ->
+      inside_in false column (token, column)
+    | COMMA ->
+      if column < indent - 2 then error "offside" else
+        emit token >>= fun () ->
+        get >>= inside_let false indent
+    | _ ->
+      if column < indent then
+        emit IN >>= fun () ->
+        inside_in false column (token, column)
+      else
+        emit_if (column = indent && insert) COMMA >>= fun () ->
+        nest token >>= fun () ->
+        get >>= inside_let true indent
+
+  and inside_in insert indent (token, column) =
+    match token with
+    | RBRACE | COMMA | IN | EOF | RPAR -> unget (token, column)
+    | SEMI ->
+      if column < indent - 2 then error "offside" else
+        emit token >>= fun () ->
+        get >>= inside_in false indent
+    | LET when column = indent ->
+      emit_if (column = indent && insert) SEMI >>= fun () ->
+      emit token >>= fun () ->
+      get >>= fun (token, column) ->
+      inside_let false column (token, column)
+    | THEN | ELSE ->
+      if column < indent then error "offside" else
+        emit token >>= fun () ->
+        get >>= inside_in true indent
+    | _ ->
+      if column < indent then unget (token, column) else
+        emit_if (column = indent && insert) SEMI >>= fun () ->
+        nest token >>= fun () ->
+        get >>= inside_in true indent
+
+  and inside_parens (token, column) =
+    match token with
+    | RPAR -> emit token
+    | _ -> nest token >>= fun () -> get >>= inside_parens
+
+  and nest token =
+    emit token >>= fun () ->
+    match token with
+    | LBRACE ->
+      get >>= fun (token, column) ->
+      inside_braces RBRACE false column (token, column)
+    | LPAR ->
+      get >>= inside_parens
+    | LET ->
+      get >>= fun (token, column) -> inside_let false column (token, column)
+    | EQUAL | DARROW | DO ->
+      get >>= fun (token, column) -> inside_in false column (token, column)
+    | _ ->
+      unit
+
+  type state = (unit monad * (Parser.token * int) option) ref
+
+  let init () =
+    ref ((get >>= fun (token, column) ->
+          inside_braces EOF false column (token, column)),
+         None)
+
+  let token state get_token lexbuf =
+    let (Monad uM, tco) = !state in
+    match uM get_token lexbuf tco with
+    | (Emit (token, continue), tco) -> state := (continue, tco); token
+    | (Return (), _) -> failwith "return"
+end
 }
 
 let space = [' ''\t']

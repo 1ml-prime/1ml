@@ -99,7 +99,7 @@ T ::=
 D ::=
     X : T                   (field/member declaration)
     ... T                   (type/signature inclusion)
-    D ; D                   (sequencing)
+    D , D                   (sequencing)
                             (empty)
 
 (expressions)
@@ -125,7 +125,7 @@ E ::=
 B ::=
     X = E                   (field/member definition)
     ... E                   (record/structure inclusion)
-    B ; B                   (sequencing)
+    B , B                   (sequencing)
                             (empty)
     type_error E            (type error assertion - elaboration of E must fail)
 ```
@@ -188,16 +188,15 @@ E ::= ...
     E1 && E2                        ~> if E1 then E2 else false
     E : T                           ~> (fun (X : T) => X) E
     E :> T                          ~> unwrap (wrap E : T) : T
-    let B in E                      ~> {B ; X = E}.X
+    let B in E                      ~> {B , X = E}.X
     rec P => E                      ~> rec (X : TP) => let P = X in E  [2]
-    do E                            ~> let _ = E in ()
-    (E1; ...; En)                   ~> do {do E1; ...; do En}
+    E1 ; E2                         ~> let _ = E1 in E2
 
 (patterns)
 P ::=
     _                               ~> (; empty ;)
     X                               ~> X = $
-    {X1 = P1, ..., Xn = Pn}         ~> P1 = $.X1; ...; Pn = $.Xn
+    {X1 = P1, ..., Xn = Pn}         ~> P1 = $.X1, ..., Pn = $.Xn
     {..., X, ...}                   ~> {..., X = X, ...}
     {..., X : T, ...}               ~> {..., X = X : T, ...}
     {..., X : T = E, ...}           ~> {..., X = E : T, ...}
@@ -207,7 +206,7 @@ P ::=
     wrap P : T                      ~> ...let $ = unwrap $ : T in {P = $}
     @T P                            ~> ...let $ = $.@T in {P = $}
     P : T                           ~> P = $ : T
-    P1 as P2                        ~> P1; P2
+    P1 as P2                        ~> P1, P2
 
 (bindings)
 B ::= ...
@@ -229,7 +228,7 @@ Note [2]: The type `TP` is derived from the pattern `P` as follows:
 ```
 _                               ~> _
 X                               ~> _
-{ X1 = P1, ..., Xn = Pn }       ~> { X1 : TP1; ...; Xn : TPn }
+{ X1 = P1, ..., Xn = Pn }       ~> { X1 : TP1, ..., Xn : TPn }
 wrap P : T                      ~> T as wrap TP
 @T P                            ~> T as (rec _ => type TP)
 P : T                           ~> TP as T
@@ -238,6 +237,15 @@ P1 as P2                        ~> TP1 as TP2
 
 Note [3]: There is currently no precedence rules for infix operators, they are
 all left-associative with the same precedence.
+
+### Layout sensitive token insertion
+
+To reduce noise, semicolons (`;`), commas (`,`), and `in` tokens are
+automatically inserted in certain contexts based on layout.
+
+The exact rules for token insertion should be _considered experimental_ at this
+point and they will likely be changed in incompatible ways (stricter in some
+ways; less strict in other ways) in the future.
 
 ### Notes on Specific Constructs
 
@@ -250,7 +258,7 @@ Programs consist of bindings, and the prompt expects bindings, too. To evaluate
 an expression for its side effect, the `do` notation can be used:
 
 ```1ml
-do Int.print (3 + 5);
+do Int.print (3 + 5)
 ```
 
 Here, `Int.print` is defined in [prelude.1ml](prelude.1ml). The prompt does not
@@ -261,23 +269,21 @@ currently print results itself.
 Types can be defined in a familiar style using the respective sugar:
 
 ```1ml
-type t = int;             ;; t = type int
-type pair x y = (x, y);   ;; pair = fun (x : type) => fun (y : type) => (x, y)
+type t = int              ;; t = type int
+type pair x y = (x, y)    ;; pair = fun (x : type) => fun (y : type) => (x, y)
 
-type MONAD (m : type => type) =
-{
-  return 'a : a -> m a;
-  bind 'a 'b : m a -> (a -> m b) -> m b;
-};
+type MONAD (m : type => type) = {
+  return 'a : a -> m a
+  bind 'a 'b : m a -> (a -> m b) -> m b
+}
 
-type SIG =
-{
-  type t;                      ;; t : type
-  type u a;                    ;; u : (a : type) => type
-  type v = int;                ;; v : (= type int)
-  type w a (c : type => type) = (u a, c t);
+type SIG = {
+  type t                       ;; t : type
+  type u a                     ;; u : (a : type) => type
+  type v = int                 ;; v : (= type int)
+  type w a (c : type => type) = (u a, c t)
   ;; w : (a : type) => (c : (_ : type) => type) => (= type {_1: u a, _2: c t})
-};
+}
 ```
 
 #### Implicit Polymorphism
@@ -285,34 +291,34 @@ type SIG =
 Types are generalised Damas/Milner-style at bindings:
 
 ```1ml
-pair x y = {fst = x; snd = y};
-p = pair 5 "foo";
+pair x y = {fst = x, snd = y}
+p = pair 5 "foo"
 ```
 
 The type of pair can be declared as follows:
 
 ```1ml
-pair 'a 'b : a -> b -> {fst : a; snd : b}
+pair 'a 'b : a -> b -> {fst : a, snd : b}
 ```
 
 which is just sugar for
 
 ```1ml
-pair : 'a => 'b => a -> b -> {fst : a; snd : b}
+pair : 'a => 'b => a -> b -> {fst : a, snd : b}
 ```
 
 or even more explicitly,
 
 ```1ml
-pair : '(a : type) => '(b : type) => a -> b -> {fst : a; snd : b}
+pair : '(a : type) => '(b : type) => a -> b -> {fst : a, snd : b}
 ```
 
 Generalisation can also take place as part of subtyping (a.k.a. signature
 matching), e.g. in the following example:
 
 ```1ml
-f (id 'a : a -> a) = (id 5, id "");
-p = f (fun x => x);
+f (id 'a : a -> a) = (id 5, id "")
+p = f (fun x => x)
 ```
 
 This also shows that implicit functions naturally are first-class values.
@@ -323,11 +329,11 @@ There are no datatype definitions, recursive types have to be defined
 explicitly, and require explicit injection/projection.
 
 ```1ml
-type stream = rec t => {hd : int; tl : () -> opt t};  ;; creates rec type
-single x = @stream{hd = x; tl = fun () => none};  ;; @(t) e rolls value into t
-@stream{hd = n} = single 5;            ;; @(t) p pattern matches on rec value
-do Int.print n;                        ;; or:
-do Int.print (single 7 .@stream .hd);  ;; e.@(t) unrolls rec value directly
+type stream = rec t => {hd : int, tl : () -> opt t}   ;; creates rec type
+single x = @stream{hd = x, tl = fun () => none}   ;; @(t) e rolls value into t
+@stream{hd = n} = single 5             ;; @(t) p pattern matches on rec value
+do Int.print n                         ;; or:
+do Int.print (single 7 .@stream .hd)   ;; e.@(t) unrolls rec value directly
 ```
 
 #### Recursive Functions
@@ -336,19 +342,18 @@ The `rec` expression form allows defining recursive functions:
 
 ```1ml
 count = rec self => fun i =>
-  if i == 0 then () else self (i - 1);
+  if i == 0 then () else self (i - 1)
 
 repeat = rec self => fun x =>
-  @stream{hd = x; tl = fun () => some (self x)};
+  @stream{hd = x, tl = fun () => some (self x)}
 ```
 
 Mutual recursion is also expressible:
 
 ```1ml
-{even; odd} = rec (self : {even : int -> stream; odd : int -> stream}) =>
-{
-  even x = @stream{hd = x; tl = fun () => some (self.odd (x + 1))};
-  odd x = @stream{hd = x; tl = fun () => some (self.even (x + 1))};
+{even, odd} = rec (self : {even : int -> stream, odd : int -> stream}) => {
+  even x = @stream{hd = x, tl = fun () => some (self.odd (x + 1))}
+  odd x = @stream{hd = x, tl = fun () => some (self.even (x + 1))}
 }
 ```
 
@@ -362,22 +367,20 @@ However, it is possible to inject large types into the small universe
 explicitly, using `wrap` types. From [prelude.1ml](prelude.1ml):
 
 ```1ml
-type OPT =
-{
-  type opt a;
-  none 'a : opt a;
-  some 'a : a -> opt a;
-  caseopt 'a 'b : opt a -> b -> (a -> b) -> b;
-};
-Opt :> OPT =
-{
+type OPT = {
+  type opt a
+  none 'a : opt a
+  some 'a : a -> opt a
+  caseopt 'a 'b : opt a -> b -> (a -> b) -> b
+}
+Opt :> OPT = {
   ;; Church encoding; it requires the abstract type opt a to be implemented
   ;; with a polymorphic (i.e., large) type. Thus, wrap the type.
-  type opt a = wrap (b : type) => b -> (a -> b) -> b;
-  none = wrap (fun (b : type) (n : b) (s : _ -> b) => n) : opt _;
-  some x = wrap (fun (b : type) (n : b) (s : _ -> b) => s x) : opt _;
-  caseopt xo = (unwrap xo : opt _) _;
-};
+  type opt a = wrap (b : type) => b -> (a -> b) -> b
+  none = wrap (fun (b : type) (n : b) (s : _ -> b) => n) : opt _
+  some x = wrap (fun (b : type) (n : b) (s : _ -> b) => s x) : opt _
+  caseopt xo = (unwrap xo : opt _) _
+}
 ```
 
 Note how values of type `wrap T` have to be wrapped and unwrapped explicitly,
