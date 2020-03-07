@@ -155,15 +155,10 @@ and funE'(ps, e) =
       | _ -> "$"@@p.at, letE(b, e')@@span[p.at; e.at]
     in FunE(x, t, e'', i)@@span[p.at; e.at]
 
-let doE(e) = letE(VarB("_"@@e.at, e)@@e.at, tupE[]@@e.at)
 let doB(e) = letB(VarB("_"@@e.at, e)@@e.at, EmptyB@@e.at)
 
-let seqE(es) =
-  let b =
-    List.fold_right (fun e b -> seqB(doB(e)@@e.at, b)@@span[e.at; b.at])
-      es (EmptyB@@(after (Lib.List.last es).at))
-  in
-  doE(strE(b)@@@(List.map at es))
+let seqE(l, r) =
+  letE(VarB("_"@@l.at, l)@@l.at, r)
 
 let ifE(e1, e2, e3, t) =
   match e1.it with
