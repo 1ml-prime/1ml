@@ -200,7 +200,7 @@ dec :
     { EmptyD@@at() }
   | atdec
     { $1 }
-  | atdec SEMI dec
+  | atdec COMMA dec
     { seqD($1, $3)@@at() }
 ;
 
@@ -274,8 +274,6 @@ atexp :
     { strE(EmptyB@@at())@@at() }
   | LPAR explist RPAR
     { match $2 with [e] -> e | es -> tupE(es)@@at() }
-  | LPAR expsemilist RPAR
-    { seqE($2)@@at() }
   | LPAR DOT label RPAR
     { dotopE($3)@@at() }
 ;
@@ -300,8 +298,6 @@ infexp :
     { orE($1, $3)@@at() }
   | infexp LOGICAL_AND appexp
     { andE($1, $3)@@at() }
-  | DO appexp
-    { doE($2)@@at() }
 ;
 annexp :
   | infexp
@@ -317,32 +313,31 @@ annexp :
   | UNWRAP infexp COLON typ
     { unwrapE($2, $4)@@at() }
 ;
-exp :
+inexp :
   | annexp
     { $1 }
-  | FUN param paramlist DARROW exp
-    { funE($2::$3, $5)@@at() }
   | IF exp THEN exp ELSE infexp COLON typ
     { ifE($2, $4, $6, $8)@@at() }
   | IF exp THEN exp ELSE infexp
     { ifE($2, $4, $6, HoleT@@ati 1)@@at() }
+;
+exp :
   | LET bind IN exp
     { letE($2, $4)@@at() }
+  | inexp SEMI exp
+    { seqE($1, $3)@@at() }
+  | inexp
+    { $1 }
+  | FUN param paramlist DARROW exp
+    { funE($2::$3, $5)@@at() }
   | REC atpat DARROW exp
     { recE(defaultP $2, $4)@@at() }
 ;
+
 explist :
   | exp
     { $1::[] }
   | exp COMMA explist
-    { $1::$3 }
-;
-expsemilist :
-  | exp SEMI
-    { $1::[] }
-  | exp SEMI exp
-    { $1::$3::[] }
-  | exp SEMI expsemilist
     { $1::$3 }
 ;
 
@@ -377,7 +372,7 @@ bind :
     { EmptyB@@at() }
   | atbind
     { $1 }
-  | atbind SEMI bind
+  | atbind COMMA bind
     { seqB($1, $3)@@at() }
 ;
 
@@ -449,7 +444,7 @@ decon :
     { [] }
   | atdecon
     { $1 }
-  | atdecon SEMI decon
+  | atdecon COMMA decon
     { $1 @ $3 }
 ;
 

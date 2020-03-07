@@ -26,7 +26,8 @@ let parse name source =
   let lexbuf = Lexing.from_string source in
   lexbuf.Lexing.lex_curr_p <-
     {lexbuf.Lexing.lex_curr_p with Lexing.pos_fname = name};
-  try Parser.prog Lexer.token lexbuf with Source.Error (region, s) ->
+  let token = let open Lexer.Offside in token (init ()) Lexer.token in
+  try Parser.prog token lexbuf with Source.Error (region, s) ->
     let region' = if region <> Source.nowhere_region then region else
       {Source.left = Lexer.convert_pos lexbuf.Lexing.lex_start_p;
        Source.right = Lexer.convert_pos lexbuf.Lexing.lex_curr_p} in
