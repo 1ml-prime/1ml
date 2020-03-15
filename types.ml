@@ -689,7 +689,6 @@ let print_brack lbrack rbrack print =
   open_box (String.length lbrack);
   print_string lbrack;
   print ();
-  print_cut ();
   print_string rbrack;
   close_box ()
 
