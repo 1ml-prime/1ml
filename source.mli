@@ -16,6 +16,9 @@ exception Error of region * string
 val nowhere_pos : pos
 val nowhere_region : region
 
+val file_pos : string -> pos
+val file_region : string -> region
+
 val string_of_pos : pos -> string
 val string_of_region : region -> string
 
@@ -28,6 +31,7 @@ val (@@@) : 'a -> region list -> ('a, 'b) phrase
 val (<~) : ('a, 'b) phrase -> 'b -> 'b
 val dup : ('a, 'b) phrase -> ('a, 'b) phrase
 
+val at_file : ('a, 'b) phrase -> string
 val at : ('a, 'b) phrase -> region
 val it : ('a, 'b) phrase -> 'a
 val sem : ('a, 'b) phrase -> 'b

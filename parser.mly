@@ -36,6 +36,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %token COMMA SEMI
 %token TYPE_ERROR
 %token LOCAL
+%token IMPORT
 
 %token EOF
 
@@ -45,8 +46,9 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %token<char> CHAR
 %token<int> NUM
 
-%start prog
+%start prog sigs
 %type<Syntax.exp> prog
+%type<Syntax.typ> sigs
 
 %%
 
@@ -329,6 +331,8 @@ atexp :
     { match $2 with [e] -> e | es -> tupE(es)@@at() }
   | LPAR DOT label RPAR
     { dotopE($3)@@at() }
+  | IMPORT TEXT
+    { ImportE($2@@ati 2)@@at() }
 ;
 appexp :
   | dotexp
@@ -423,6 +427,8 @@ atbind :
     { TypeErrorB($2)@@at() }
   | LET bind IN exp
     { InclB(letE($2, $4)@@at())@@at() }
+  | IMPORT TEXT
+    { InclB(ImportE($2@@ati 2)@@at())@@at() }
 /*
   | LPAR bind RPAR
     { $2 }
@@ -511,6 +517,11 @@ decon :
 prog :
   | bind EOF
     { strE($1)@@at() }
+;
+
+sigs :
+  | dec EOF
+    { strT($1)@@at() }
 ;
 
 %%
