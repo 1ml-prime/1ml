@@ -232,6 +232,7 @@ rule token = parse
   | "||" { LOGICAL_OR }
   | "wrap" { WRAP }
   | "local" { LOCAL }
+  | "import" { IMPORT }
   | "primitive" { PRIMITIVE }
   | "rec" { REC }
   | "then" { THEN }
