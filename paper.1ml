@@ -1,8 +1,9 @@
 ;; Examples from the 1ML paper
-;; (assumes prelude.1ml)
 ;;
 ;; Note: This is assuming full 1ML, so unlike in the first part of the paper,
 ;; explicit type parameters must be annotated as 'type'.
+
+local import "prelude.1ml"
 
 ;; Section 2: 1ML with Explicit Types
 

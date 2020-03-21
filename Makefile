@@ -5,10 +5,10 @@
 NAME = 1ml
 MODULES = \
   lib source prim syntax parser lexer \
-  fomega types iL env erase trace sub elab \
+  fomega types iL env erase trace sub import elab \
   lambda compile \
   main
-NOMLI = syntax iL main
+NOMLI = syntax iL main import
 PARSERS = parser
 LEXERS = lexer
 SAMPLES = prelude paper

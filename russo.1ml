@@ -1,3 +1,5 @@
+local import "prelude.1ml"
+
 ;; Dynamically-Sized Functional Arrays
 ;; After Russo 1998, Types for Modules, Section 7.3
 
