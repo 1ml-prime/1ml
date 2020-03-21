@@ -35,6 +35,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %token DOT AT TICK
 %token COMMA SEMI
 %token TYPE_ERROR
+%token LOCAL
 
 %token EOF
 
@@ -202,6 +203,8 @@ dec :
     { $1 }
   | atdec COMMA dec
     { seqD($1, $3)@@at() }
+  | LOCAL bind IN dec
+    { letD($2, $4)@@at() }
 ;
 
 dotpathexp :
@@ -374,6 +377,8 @@ bind :
     { $1 }
   | atbind COMMA bind
     { seqB($1, $3)@@at() }
+  | LOCAL bind IN bind
+    { letB($2, $4)@@at() }
 ;
 
 atpat :
