@@ -191,6 +191,8 @@ atdec :
         @@at() }
   | ELLIPSIS typ
     { InclD($2)@@at() }
+  | LET bind IN typ
+    { InclD(letT($2, $4)@@at())@@at() }
 /*
   | LPAR dec RPAR
     { $2 }
@@ -365,6 +367,8 @@ atbind :
     { doB($2)@@at() }
   | TYPE_ERROR exp
     { TypeErrorB($2)@@at() }
+  | LET bind IN exp
+    { InclB(letE($2, $4)@@at())@@at() }
 /*
   | LPAR bind RPAR
     { $2 }
