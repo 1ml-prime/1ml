@@ -5,6 +5,7 @@
 open Source
 
 type var = (string, unit) phrase
+type path = (string, unit) phrase
 
 type impl = (impl', unit) phrase
 and impl' =
@@ -51,6 +52,7 @@ and exp' =
   | UnwrapE of var * typ
   | UnrollE of var * typ
   | RecE of var * typ * exp
+  | ImportE of path
 
 and bind = (bind', unit) phrase
 and bind' =
@@ -375,6 +377,7 @@ let label_of_exp e =
   | UnwrapE _ -> "UnwrapE"
   | UnrollE _ -> "UnrollE"
   | RecE _ -> "RecE"
+  | ImportE _ -> "ImportE"
 
 let label_of_bind b =
   match b.it with
@@ -433,6 +436,7 @@ and string_of_exp e =
   | UnwrapE(x, t) -> node' [string_of_var x; string_of_typ t]
   | UnrollE(x, t) -> node' [string_of_var x; string_of_typ t]
   | RecE(x, t, e) -> node' [string_of_var x; string_of_typ t; string_of_exp e]
+  | ImportE(p) -> node' ["\"" ^ String.escaped p.it ^ "\""]
 
 and string_of_bind b =
   let node' = node (label_of_bind b) in
@@ -442,3 +446,50 @@ and string_of_bind b =
   | VarB(x, e) -> node' [string_of_var x; string_of_exp e]
   | InclB(e) -> node' [string_of_exp e]
   | TypeErrorB(e) -> node' [string_of_exp e]
+
+(* Import *)
+
+let rec imports_typ typ =
+  match typ.it with
+  | PathT exp -> imports_exp exp
+  | PrimT _ -> []
+  | TypT -> []
+  | HoleT -> []
+  | StrT dec -> imports_dec dec
+  | FunT(_, typ1, typ2, _, _) -> imports_typ typ1 @ imports_typ typ2
+  | WrapT typ -> imports_typ typ
+  | EqT exp -> imports_exp exp
+  | AsT(typ1, typ2) -> imports_typ typ1 @ imports_typ typ2
+  | WithT(typ, _, exp) -> imports_typ typ @ imports_exp exp
+
+and imports_dec dec =
+  match dec.it with
+  | EmptyD -> []
+  | SeqD(dec1, dec2) -> imports_dec dec1 @ imports_dec dec2
+  | VarD(_, typ) -> imports_typ typ
+  | InclD typ -> imports_typ typ
+
+and imports_exp exp =
+  match exp.it with
+  | VarE _ -> []
+  | PrimE _ -> []
+  | TypE typ -> imports_typ typ
+  | StrE bind -> imports_bind bind
+  | FunE(_, typ, exp, _) -> imports_typ typ @ imports_exp exp
+  | WrapE(_, typ) -> imports_typ typ
+  | RollE(_, typ) -> imports_typ typ
+  | IfE(_, exp1, exp2, typ) -> imports_exp exp1 @ imports_exp exp2 @ imports_typ typ
+  | DotE(exp, _) -> imports_exp exp
+  | AppE _ -> []
+  | UnwrapE(_, typ) -> imports_typ typ
+  | UnrollE(_, typ) -> imports_typ typ
+  | RecE(_, typ, exp) -> imports_typ typ @ imports_exp exp
+  | ImportE path -> [path]
+
+and imports_bind bind =
+  match bind.it with
+  | EmptyB -> []
+  | SeqB(bind1, bind2) -> imports_bind bind1 @ imports_bind bind2
+  | VarB(_, exp) -> imports_exp exp
+  | InclB exp -> imports_exp exp
+  | TypeErrorB exp -> imports_exp exp
