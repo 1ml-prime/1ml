@@ -172,6 +172,7 @@ D ::= ...
     X A1 ... An = E                 ~> X : A1 -> ... -> An -> (= E)
     type X A1 ... An                ~> X : A1 => ... => An => type
     type X A1 ... An = T            ~> X : A1 => ... => An => (= type T)
+    local B in D                    ~> ...let B in {D}  [4]
     X                               ~> X : (= X)
 
 (expressions)
@@ -216,6 +217,7 @@ B ::= ...
     X A1 ... An : T = E             ~> X = fun A1 ... An => E : T
     X A1 ... An :> T = E            ~> X = fun A1 ... An => E :> T
     type X A1 ... An = T            ~> X = fun A1 ... An => type T
+    local B1 in B2                  ~> ...let B1 in {B2}  [4]
     do E                            ~> ...let _ = E in {}
 ```
 
@@ -237,6 +239,8 @@ P1 as P2                        ~> TP1 as TP2
 
 Note [3]: There is currently no precedence rules for infix operators, they are
 all left-associative with the same precedence.
+
+Note [4]: The bindings after `local-in` extend to end of structure (or file).
 
 ### Layout sensitive token insertion
 
