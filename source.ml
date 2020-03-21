@@ -19,6 +19,9 @@ exception Error of region * string
 let nowhere_pos = {file = ""; line = 0; column = 0}
 let nowhere_region = {left = nowhere_pos; right = nowhere_pos}
 
+let file_pos file = {file; line = 0; column = 0}
+let file_region file = let pos = file_pos file in {left = pos; right = pos}
+
 let string_of_pos pos =
   string_of_int pos.line ^ "." ^ string_of_int (pos.column + 1)
 let string_of_region r =
@@ -42,6 +45,7 @@ let (@@@) phrase' regions = phrase'@@(span regions)
 let (<~) phrase sem = assert (phrase.sem = None); phrase.sem <- Some sem; sem
 let dup phrase = phrase.it@@phrase.at
 
+let at_file phrase = phrase.at.left.file
 let at phrase = phrase.at
 let it phrase = phrase.it
 let sem phrase = match phrase.sem with
