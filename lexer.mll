@@ -105,7 +105,24 @@ module Offside = struct
       if column < indent then error "offside" else
         emit_if (column = indent && insert) COMMA >>= fun () ->
         nest token >>= fun () ->
-        get >>= inside_braces break true indent
+        get >>= inside_braces break (token <> LOCAL) indent
+
+  and inside_local insert indent (token, column) =
+    match token with
+    | IN ->
+      emit token
+    | COMMA ->
+      if column < indent - 2 then error "offside" else
+        emit token >>= fun () ->
+        get >>= inside_local false indent
+    | _ ->
+      if column < indent then
+        unget (token, column) >>= fun () ->
+        emit IN
+      else
+        emit_if (column = indent && insert) COMMA >>= fun () ->
+        nest token >>= fun () ->
+        get >>= inside_local (token <> LOCAL) indent
 
   and inside_let insert indent (token, column) =
     match token with
@@ -124,7 +141,7 @@ module Offside = struct
       else
         emit_if (column = indent && insert) COMMA >>= fun () ->
         nest token >>= fun () ->
-        get >>= inside_let true indent
+        get >>= inside_let (token <> LOCAL) indent
 
   and inside_in insert indent (token, column) =
     match token with
@@ -163,6 +180,8 @@ module Offside = struct
       get >>= inside_parens
     | LET ->
       get >>= fun (token, column) -> inside_let false column (token, column)
+    | LOCAL ->
+      get >>= fun (token, column) -> inside_local false column (token, column)
     | EQUAL | DARROW | DO ->
       get >>= fun (token, column) -> inside_in false column (token, column)
     | _ ->
@@ -212,6 +231,7 @@ rule token = parse
   | "let" { LET }
   | "||" { LOGICAL_OR }
   | "wrap" { WRAP }
+  | "local" { LOCAL }
   | "primitive" { PRIMITIVE }
   | "rec" { REC }
   | "then" { THEN }
