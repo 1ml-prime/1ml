@@ -194,7 +194,7 @@ in {
   case 'x 'n (type p _) (cs: I x p t) e =
     (unwrap e.@(t _ _): wrap T x n t) p cs
 
-  ...let mk 'x 'n (c: T x n t) = @(t x n) (wrap c: wrap T x n t) in {
+  let mk 'x 'n (c: T x n t) = @(t x n) (wrap c: wrap T x n t) in {
     nil  'x                       = mk (fun (type p _) (r: I x p t) => r.nil)
     (::) 'x 'n (v: x) (vs: t x n) = mk (fun (type p _) (r: I x p t) => r.:: v vs)
   }

@@ -255,7 +255,7 @@ TestSetAndMap = {
 }
 
 
-...let
+let
   f x = nil
   g 'a : () -> list a = f
 in {
