@@ -1,3 +1,7 @@
+local import "prelude"
+
+;;
+
 record_inference x = x.works_a_little
 
 ;;
