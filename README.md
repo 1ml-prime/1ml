@@ -120,6 +120,7 @@ E ::=
     rec (X : T) => E        (recursion)
     @T E                    (recursive type roll)
     E.@T                    (recursive type unroll)
+    import "path"           (static import of module from file at path)
 
 (bindings)
 B ::=
@@ -228,6 +229,7 @@ B ::= ...
     let B in E                      ~> ...let B in E
     local B1 in B2                  ~> ...let B1 in {B2}  [4]
     do E                            ~> ...let _ = E in {}
+    import "path"                   ~> ...import "path"
 ```
 
 Note [1]: The expansion of an argument `X` to `(X : type)` is only used for the
