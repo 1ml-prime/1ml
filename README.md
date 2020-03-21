@@ -172,6 +172,7 @@ D ::= ...
     X A1 ... An = E                 ~> X : A1 -> ... -> An -> (= E)
     type X A1 ... An                ~> X : A1 => ... => An => type
     type X A1 ... An = T            ~> X : A1 => ... => An => (= type T)
+    let B in T                      ~> ...let B in T
     local B in D                    ~> ...let B in {D}  [4]
     X                               ~> X : (= X)
 
@@ -217,6 +218,7 @@ B ::= ...
     X A1 ... An : T = E             ~> X = fun A1 ... An => E : T
     X A1 ... An :> T = E            ~> X = fun A1 ... An => E :> T
     type X A1 ... An = T            ~> X = fun A1 ... An => type T
+    let B in E                      ~> ...let B in E
     local B1 in B2                  ~> ...let B1 in {B2}  [4]
     do E                            ~> ...let _ = E in {}
 ```
