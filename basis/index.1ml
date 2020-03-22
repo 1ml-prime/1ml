@@ -1,0 +1,55 @@
+import "prelude"
+
+List = import "./list"
+
+;; Set
+
+type ORD = {
+  type t
+  (<=) : t => t -> Bool.t
+}
+
+type SET = {
+  type set
+  type elem
+  type t = set
+  empty : set
+  add : elem -> set -> set
+  mem : elem -> set -> bool
+  card : set -> int
+}
+
+Set (Elem : ORD) :> SET with (elem = Elem.t) = {
+  type elem = Elem.t
+  x == y = let ...Elem in (x <= y) && (y <= x)
+  type set = (int, elem -> bool)
+  type t = set
+  empty = (0, fun (x : elem) => false)
+  card (s : set) = s._1
+  mem (x : elem) (s : set) = s._2 x
+  add (x : elem) (s : set) =
+    if mem x s then s
+    else (s._1 + 1, fun (y : elem) => x == y || mem y s) : set
+}
+
+
+;; Map
+
+type MAP = {
+  type map a
+  type key
+  type t a = map a
+  empty 'a : map a
+  add 'a : key -> a -> map a -> map a
+  lookup 'a : key -> map a -> opt a
+}
+
+Map (Key : ORD) :> MAP with (key = Key.t) = {
+  type key = Key.t
+  x == y = let ...Key in (x <= y) && (y <= x)
+  type map a = key -> opt a
+  t = map
+  empty x = none
+  lookup x m = m x
+  add x y m z = if x == z then some y else m x
+}

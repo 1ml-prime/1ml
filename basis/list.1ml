@@ -1,0 +1,34 @@
+local import "prelude"
+
+...List
+
+isNil = case {nil = true, _::_ = false}
+
+head = case {nil = none, x::_ = some x}
+tail = case {nil = none, _::xs = some xs}
+
+foldr (::) nil = rec loop => case {nil, x::xs = x::loop xs}
+
+foldl xss = rec (loop: _ => _) => fun s => case {
+  nil = s
+  x :: xs = loop (xss x s) xs
+}
+
+length = foldl (const 1 >> (+)) 0
+
+nth = rec (loop: _ => _) => fun n => case {
+  nil = none
+  x :: xs = if n == 0 then some x else loop (n-1) xs
+}
+
+revPrependTo = foldl (::)
+rev = revPrependTo nil
+cat hs ts = revPrependTo ts (rev hs)
+
+map xy = foldl (xy >> (::)) nil >> rev
+
+filter p = foldl (fun x ys => if p x then x::ys else ys) nil >> rev
+
+flatMap xys = foldl (fun x ys => revPrependTo ys (xys x)) nil >> rev
+
+toText toText = rev >> foldl (fun x s => toText x ++ " :: " ++ s) "nil"
