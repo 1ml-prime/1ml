@@ -340,7 +340,7 @@ let infer_prim_typs = function
   | [t] -> infer_prim_typ t
   | ts -> ProdT(tup_row (List.map infer_prim_typ ts))
 
-let infer_prim_fun {Prim.typ = ts1, ts2} =
+let infer_prim_fun {Prim.typ = ts1, _, ts2} =
   ArrT(infer_prim_typs ts1, infer_prim_typs ts2)
 
 let infer_const = function

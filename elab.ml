@@ -336,13 +336,15 @@ and elab_prim_typs = function
   | ts -> StrT(tup_row (List.map elab_prim_typ ts))
 
 and elab_prim_fun f =
-  let t1 = elab_prim_typs (fst f.Prim.typ) in
-  let t2 = elab_prim_typs (snd f.Prim.typ) in
-  let t = FunT([], t1, ExT([], t2), Explicit Impure) in
+  let t1, ef, t2 = f.Prim.typ in
+  let t1 = elab_prim_typs t1 in
+  let t2 = elab_prim_typs t2 in
+  let ef = match ef with Prim.PureE -> Pure | Prim.ImpureE -> Impure in
+  let t = FunT([], t1, ExT([], t2), Explicit ef) in
   let e = IL.PrimE(Prim.FunV f) in
   if Prim.is_poly f then
     let ta = TypT(ExT([], VarT("a", BaseK))) in
-    FunT(["a", BaseK], ta, ExT([], t), Explicit Impure),
+    FunT(["a", BaseK], ta, ExT([], t), Explicit Pure),
     IL.GenE("a", IL.BaseK, IL.LamE("_", erase_typ ta, e))
   else
     t, e
