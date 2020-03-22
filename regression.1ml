@@ -1,4 +1,4 @@
-local import "prelude"
+local import "basis"
 
 ;;
 
@@ -146,9 +146,10 @@ in {
       ...T.Odd
       make 'x (v: opt (T.Even.t x)) : T.Odd.t x = @(T.Odd.t x) v
       size 'x (v: T.Odd.t x) =
-        caseopt v.@(T.Odd.t x)
-          (fun () => 0)
-          (fun e => R.Even.size e)
+        v.@(T.Odd.t x) |> Opt.case {
+          none = 0
+          some e = R.Even.size e
+        }
     }
   }
 
@@ -191,9 +192,9 @@ PolyRec = {
 
   t_int = t int
 
-  hmm (x: t int) = casealt (x.@(t int))
+  hmm (x: t int) = flip Alt.case (x.@(t int))
 
-  t0 = @(t int) (right (@(t (type (int, int))) (left (0, 0))))
+  t0 = @(t int) (inr (@(t (type (int, int))) (inl (0, 0))))
 }
 
 N :> {

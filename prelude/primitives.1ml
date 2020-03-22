@@ -1,0 +1,49 @@
+local PolyEq (type t) = {
+  (x : t) == (y : t) = primitive "==" t (x, y)
+  (x : t) <> (y : t) = primitive "<>" t (x, y)
+}
+
+Bool = {
+  type t = primitive "bool"
+  true = primitive "true" ()
+  false = primitive "false" ()
+  ...PolyEq t
+}
+
+Char = {
+  type t = primitive "char"
+  toInt = primitive "Char.toInt"
+  fromInt = primitive "Char.fromInt"
+  print = primitive "Char.print"
+  ...PolyEq t
+}
+
+Int = {
+  type t = primitive "int"
+  l + r = primitive "Int.+" (l, r)
+  l - r = primitive "Int.-" (l, r)
+  l * r = primitive "Int.*" (l, r)
+  l / r = primitive "Int./" (l, r)
+  l % r = primitive "Int.%" (l, r)
+  l < r = primitive "Int.<" (l, r)
+  l > r = primitive "Int.>" (l, r)
+  l <= r = primitive "Int.<=" (l, r)
+  l >= r = primitive "Int.>=" (l, r)
+  toText = primitive "Int.toText"
+  print = primitive "Int.print"
+  ...PolyEq t
+}
+
+Text = {
+  type t = primitive "text"
+  l ++ r = primitive "Text.++" (l, r)
+  l < r = primitive "Text.<" (l, r)
+  l > r = primitive "Text.>" (l, r)
+  l <= r = primitive "Text.<=" (l, r)
+  l >= r = primitive "Text.>=" (l, r)
+  length t = primitive "Text.length" t
+  sub t i = primitive "Text.sub" (t, i)
+  fromChar = primitive "Text.fromChar"
+  print = primitive "Text.print"
+  ...PolyEq t
+}
