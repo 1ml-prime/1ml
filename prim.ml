@@ -125,6 +125,7 @@ let funs =
     def "Int.<=" (IntD & IntD) PureE BoolD (fun (i1, i2) -> i1 <= i2);
     def "Int.>=" (IntD & IntD) PureE BoolD (fun (i1, i2) -> i1 >= i2);
 
+    def "Int.toText" IntD PureE TextD string_of_int;
     def "Int.print" IntD ImpureE VoidD (fun i -> print_int i; flush_all ());
 
     def "Char.toInt" CharD PureE IntD Char.code;
