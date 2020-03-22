@@ -1,0 +1,113 @@
+import "./primitives"
+
+Bool = {
+  ...Bool
+  not b = if b then false else true
+  toText b = if b then "true" else "false"
+}
+
+Fun = {
+  type t a b = a -> b
+  id x = x
+  const x _ = x
+  bot = rec (bot: _ => _) => fun x => bot x
+  curry f x y = f (x, y)
+  uncurry f (x, y) = f x y
+  flip f x y = f y x
+  (f >> g) x = g (f x)
+  (f << g) x = f (g x)
+  x |> f = f x
+  f <| x = f x
+}
+
+Alt :> {
+  type t _ _
+  inl 'a 'b: a => t a b
+  inr 'a 'b: b => t a b
+  case 'a 'b 'o: {inl: a -> o, inr: b -> o} => t a b -> o
+} = {
+  type t a b = wrap 'o => {inl: a -> o, inr: b -> o} -> o
+  inl x = wrap (fun c => c.inl x): t _ _
+  inr x = wrap (fun c => c.inr x): t _ _
+  case c (wrap x: t _ _) = x c
+}
+
+Alt = {
+  local ...Fun
+  ...Alt
+  either inl inr = case {inl, inr}
+  plus f g = either (f >> inl) (g >> inr)
+}
+
+Opt = {
+  type t x = Alt.t (type {}) x
+  none = Alt.inl {}
+  some = Alt.inr
+  case {none, some} = Alt.case {inl {} = none, inr = some}
+}
+
+Pair = {
+  type t a b = (a, b)
+  fst (x, _) = x
+  snd (_, y) = y
+  cross f g (x, y) = (f x, g y)
+  fork f g x = (f x, g x)
+}
+
+List = {
+  local ...Opt, ...Fun
+  ...rec {type t _} => {type t x = Opt.t (Pair.t x (t x))}
+  nil = @(t _) none
+  hd :: tl = @(t _) (some (hd, tl))
+  case {nil, (::)} x = x.@(t _) |> Opt.case {
+    none = nil
+    some (hd, tl) = hd :: tl
+  }
+}
+
+alt = Alt.t
+bool = Bool.t
+char = Char.t
+int = Int.t
+list = List.t
+opt = Opt.t
+text = Text.t
+
+(%) = Int.%
+(*) = Int.*
+(+) = Int.+
+(++) = Text.++
+(-) = Int.-
+(/) = Int./
+(::) = List.::
+(<) = Int.<
+(<<) = Fun.<<
+(<=) = Int.<=
+(<>) = Int.<>
+(<|) = Fun.<|
+(==) = Int.==
+(>) = Int.>
+(>=) = Int.>=
+(>>) = Fun.>>
+(|>) = Fun.|>
+bot = Fun.bot
+const = Fun.const
+cross = Pair.cross
+curry = Fun.curry
+either = Alt.either
+false = Bool.false
+flip = Fun.flip
+fork = Pair.fork
+fst = Pair.fst
+id = Fun.id
+inl = Alt.inl
+inr = Alt.inr
+nil = List.nil
+none = Opt.none
+not = Bool.not
+plus = Alt.plus
+print = Text.print
+snd = Pair.snd
+some = Opt.some
+true = Bool.true
+uncurry = Fun.uncurry
