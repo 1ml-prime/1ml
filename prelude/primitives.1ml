@@ -1,0 +1,52 @@
+local
+  pbo (p: _ => _) l r = p (l, r)
+
+  PolyEq (type t) = {
+    (==) = pbo (primitive "==" t)
+    (<>) = pbo (primitive "<>" t)
+  }
+
+Bool = {
+  type t = primitive "bool"
+  true = primitive "true" {}
+  false = primitive "false" {}
+  ...PolyEq t
+}
+
+Char = {
+  type t = primitive "char"
+  toInt = primitive "Char.toInt"
+  fromInt = primitive "Char.fromInt"
+  print = primitive "Char.print"
+  ...PolyEq t
+}
+
+Int = {
+  type t = primitive "int"
+  (+) = pbo primitive "Int.+"
+  (-) = pbo primitive "Int.-"
+  (*) = pbo primitive "Int.*"
+  (/) = pbo primitive "Int./"
+  (%) = pbo primitive "Int.%"
+  (<) = pbo primitive "Int.<"
+  (>) = pbo primitive "Int.>"
+  (<=) = pbo primitive "Int.<="
+  (>=) = pbo primitive "Int.>="
+  toText = primitive "Int.toText"
+  print = primitive "Int.print"
+  ...PolyEq t
+}
+
+Text = {
+  type t = primitive "text"
+  (++) = pbo primitive "Text.++"
+  (<) = pbo primitive "Text.<"
+  (>) = pbo primitive "Text.>"
+  (<=) = pbo primitive "Text.<="
+  (>=) = pbo primitive "Text.>="
+  length = primitive "Text.length"
+  sub = pbo primitive "Text.sub"
+  fromChar = primitive "Text.fromChar"
+  print = primitive "Text.print"
+  ...PolyEq t
+}
