@@ -11,6 +11,10 @@ type typ =
   | TextT
   | VarT
 
+type effect =
+  | PureE
+  | ImpureE
+
 type const =
   | BoolV of bool
   | IntV of int
@@ -20,7 +24,7 @@ type const =
 
 and func =
   { name : string;
-    typ : typ list * typ list;
+    typ : typ list * effect * typ list;
     fn : const list -> const list
   }
 

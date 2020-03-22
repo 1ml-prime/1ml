@@ -9,6 +9,10 @@ type typ =
   | TextT
   | VarT
 
+type effect =
+  | PureE
+  | ImpureE
+
 type const =
   | BoolV of bool
   | IntV of int
@@ -18,7 +22,7 @@ type const =
 
 and func =
   { name : string;
-    typ : typ list * typ list;
+    typ : typ list * effect * typ list;
     fn : const list -> const list
   }
 
@@ -50,7 +54,7 @@ let string_of_const = function
   | TextV(t) -> "\"" ^ String.escaped t ^ "\""
   | FunV(f) -> "(prim " ^ f.name ^ ")"
 
-let is_poly {typ = ts1, ts2} = List.mem VarT ts1 || List.mem VarT ts2
+let is_poly {typ = ts1, _, ts2} = List.mem VarT ts1 || List.mem VarT ts2
 
 let typs = [BoolT; IntT; CharT; TextT]
 
@@ -95,51 +99,51 @@ let rec prj: type a. a def -> const list -> a * const list = function
     let prjL = prj lD and prjR = prj rD in
     fun vs -> let (l, vs) = prjL vs in let (r, vs) = prjR vs in ((l, r), vs)
 
-let def name inD outD fn = {
+let def name inD effect outD fn = {
     name = name;
-    typ = typs_of inD, typs_of outD;
+    typ = typs_of inD, effect, typs_of outD;
     fn = let inj = inj outD and prj = prj inD in
          fun vs -> let (v, vs) = prj vs in assert (vs = []); inj (fn v) []
   }
 
 let funs =
   [
-    def "==" (VarD & VarD) BoolD (fun (x1, x2) -> x1 = x2);
-    def "<>" (VarD & VarD) BoolD (fun (x1, x2) -> x1 <> x2);
+    def "==" (VarD & VarD) PureE BoolD (fun (x1, x2) -> x1 = x2);
+    def "<>" (VarD & VarD) PureE BoolD (fun (x1, x2) -> x1 <> x2);
 
-    def "true" VoidD BoolD (fun () -> true);
-    def "false" VoidD BoolD (fun () -> false);
+    def "true" VoidD PureE BoolD (fun () -> true);
+    def "false" VoidD PureE BoolD (fun () -> false);
 
-    def "Int.+" (IntD & IntD) IntD (fun (i1, i2) -> i1 + i2);
-    def "Int.-" (IntD & IntD) IntD (fun (i1, i2) -> i1 - i2);
-    def "Int.*" (IntD & IntD) IntD (fun (i1, i2) -> i1 * i2);
-    def "Int./" (IntD & IntD) IntD (fun (i1, i2) -> i1 / i2);
-    def "Int.%" (IntD & IntD) IntD (fun (i1, i2) -> i1 mod i2);
+    def "Int.+" (IntD & IntD) PureE IntD (fun (i1, i2) -> i1 + i2);
+    def "Int.-" (IntD & IntD) PureE IntD (fun (i1, i2) -> i1 - i2);
+    def "Int.*" (IntD & IntD) PureE IntD (fun (i1, i2) -> i1 * i2);
+    def "Int./" (IntD & IntD) PureE IntD (fun (i1, i2) -> i1 / i2);
+    def "Int.%" (IntD & IntD) PureE IntD (fun (i1, i2) -> i1 mod i2);
 
-    def "Int.<" (IntD & IntD) BoolD (fun (i1, i2) -> i1 < i2);
-    def "Int.>" (IntD & IntD) BoolD (fun (i1, i2) -> i1 > i2);
-    def "Int.<=" (IntD & IntD) BoolD (fun (i1, i2) -> i1 <= i2);
-    def "Int.>=" (IntD & IntD) BoolD (fun (i1, i2) -> i1 >= i2);
+    def "Int.<" (IntD & IntD) PureE BoolD (fun (i1, i2) -> i1 < i2);
+    def "Int.>" (IntD & IntD) PureE BoolD (fun (i1, i2) -> i1 > i2);
+    def "Int.<=" (IntD & IntD) PureE BoolD (fun (i1, i2) -> i1 <= i2);
+    def "Int.>=" (IntD & IntD) PureE BoolD (fun (i1, i2) -> i1 >= i2);
 
-    def "Int.print" IntD VoidD (fun i -> print_int i; flush_all ());
+    def "Int.print" IntD ImpureE VoidD (fun i -> print_int i; flush_all ());
 
-    def "Char.toInt" CharD IntD Char.code;
-    def "Char.fromInt" IntD CharD Char.chr;
+    def "Char.toInt" CharD PureE IntD Char.code;
+    def "Char.fromInt" IntD PureE CharD Char.chr;
 
-    def "Char.print" CharD VoidD (fun c -> print_char c; flush_all ());
+    def "Char.print" CharD ImpureE VoidD (fun c -> print_char c; flush_all ());
 
-    def "Text.++" (TextD & TextD) TextD (fun (t1, t2) -> t1 ^ t2);
+    def "Text.++" (TextD & TextD) PureE TextD (fun (t1, t2) -> t1 ^ t2);
 
-    def "Text.<" (TextD & TextD) BoolD (fun (i1, i2) -> i1 < i2);
-    def "Text.>" (TextD & TextD) BoolD (fun (i1, i2) -> i1 > i2);
-    def "Text.<=" (TextD & TextD) BoolD (fun (i1, i2) -> i1 <= i2);
-    def "Text.>=" (TextD & TextD) BoolD (fun (i1, i2) -> i1 >= i2);
+    def "Text.<" (TextD & TextD) PureE BoolD (fun (i1, i2) -> i1 < i2);
+    def "Text.>" (TextD & TextD) PureE BoolD (fun (i1, i2) -> i1 > i2);
+    def "Text.<=" (TextD & TextD) PureE BoolD (fun (i1, i2) -> i1 <= i2);
+    def "Text.>=" (TextD & TextD) PureE BoolD (fun (i1, i2) -> i1 >= i2);
 
-    def "Text.length" TextD IntD String.length;
-    def "Text.sub" (TextD & IntD) CharD (fun (t, i) -> t.[i]);
-    def "Text.fromChar" CharD TextD (String.make 1);
+    def "Text.length" TextD PureE IntD String.length;
+    def "Text.sub" (TextD & IntD) PureE CharD (fun (t, i) -> t.[i]);
+    def "Text.fromChar" CharD PureE TextD (String.make 1);
 
-    def "Text.print" TextD VoidD (fun t -> print_string t; flush_all ());
+    def "Text.print" TextD ImpureE VoidD (fun t -> print_string t; flush_all ());
   ]
 
 let fun_of_string name =
