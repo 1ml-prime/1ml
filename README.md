@@ -86,9 +86,9 @@ T ::=
     E                       (projection from a value/module)
     type                    (the type/kind of small types)
     { D }                   (record/structure type)
-    (X : T) -> E            (impure function/functor/constructor type)
-    (X : T) => E            (pure function/functor/constructor type)
-    '(X : T) => E           (implicit function/functor/constructor type)
+    (X : T) ~> E            (impure function/functor/constructor type)
+    (X : T) -> E            (pure function/functor/constructor type)
+    '(X : T) -> E           (implicit function/functor/constructor type)
     (= E)                   (singleton/alias type)
     T with .Xs = E          (type refinement)
     wrap T                  (impredicative wrapped type)
@@ -149,10 +149,10 @@ terms of other derived form.
 (types)
 T ::= ...
     (T1, ..., Tn)                   ~> {_1 : T1, ..., _n : Tn}
+    T1 ~> T2                        ~> (_ : T1) ~> T2
     T1 -> T2                        ~> (_ : T1) -> T2
-    T1 => T2                        ~> (_ : T1) => T2
+    P ~> T                          ~> ($ : TP) ~> let P in T  [2]
     P -> T                          ~> ($ : TP) -> let P in T  [2]
-    P => T                          ~> ($ : TP) => let P in T  [2]
     T with .Xs A1 ... An = E        ~> T with .Xs = fun A1 ... An => E
     T with type .Xs A1 ... An = T'  ~> T with .Xs = fun A1 ... An => type T'
     let B in T                      ~> (let B in type T)
@@ -171,8 +171,8 @@ A ::=
 D ::= ...
     X A1 ... An : T                 ~> X : A1 -> ... -> An -> T
     X A1 ... An = E                 ~> X : A1 -> ... -> An -> (= E)
-    type X A1 ... An                ~> X : A1 => ... => An => type
-    type X A1 ... An = T            ~> X : A1 => ... => An => (= type T)
+    type X A1 ... An                ~> X : A1 -> ... -> An -> type
+    type X A1 ... An = T            ~> X : A1 -> ... -> An -> (= type T)
     type (A1 SYM A2) A3 ... An      ~> type (SYM) A1 ... An
     type (A1 SYM A2) A3 ... An = T  ~> type (SYM) A1 ... An = T
     let B in T                      ~> ...let B in T
@@ -205,9 +205,9 @@ P ::=
     {..., X, ...}                   ~> {..., X = X, ...}
     {..., X : T, ...}               ~> {..., X = X : T, ...}
     {..., X : T = E, ...}           ~> {..., X = E : T, ...}
-    {..., type X A1 ... An, ...}    ~> {..., X : A1 => ... => An => type, ...}
+    {..., type X A1 ... An, ...}    ~> {..., X : A1 -> ... -> An -> type, ...}
     (P1, ..., Pn)                   ~> {_1 = P1, ..., _n = Pn}
-    (type X A1 ... An)              ~> (X : A1 => ... => An => type)
+    (type X A1 ... An)              ~> (X : A1 -> ... -> An -> type)
     (type (A1 SYM A2) A3 ... An)    ~> (type (SYM) A1 ... An)
     wrap P : T                      ~> ...let $ = unwrap $ : T in {P = $}
     @T P                            ~> ...let $ = $.@T in {P = $}
@@ -287,17 +287,17 @@ Types can be defined in a familiar style using the respective sugar:
 type t = int              ;; t = type int
 type pair x y = (x, y)    ;; pair = fun (x : type) => fun (y : type) => (x, y)
 
-type MONAD (m : type => type) = {
-  return 'a : a -> m a
-  bind 'a 'b : m a -> (a -> m b) -> m b
+type MONAD (m : type -> type) = {
+  return 'a : a ~> m a
+  bind 'a 'b : m a -> (a ~> m b) ~> m b
 }
 
 type SIG = {
   type t                       ;; t : type
-  type u a                     ;; u : (a : type) => type
+  type u a                     ;; u : (a : type) -> type
   type v = int                 ;; v : (= type int)
-  type w a (c : type => type) = (u a, c t)
-  ;; w : (a : type) => (c : (_ : type) => type) => (= type {_1: u a, _2: c t})
+  type w a (c : type -> type) = (u a, c t)
+  ;; w : (a : type) -> (c : (_ : type) -> type) -> (= type {_1: u a, _2: c t})
 }
 ```
 
@@ -319,13 +319,13 @@ pair 'a 'b : a -> b -> {fst : a, snd : b}
 which is just sugar for
 
 ```1ml
-pair : 'a => 'b => a -> b -> {fst : a, snd : b}
+pair : 'a -> 'b -> a -> b -> {fst : a, snd : b}
 ```
 
 or even more explicitly,
 
 ```1ml
-pair : '(a : type) => '(b : type) => a -> b -> {fst : a, snd : b}
+pair : '(a : type) -> '(b : type) -> a -> b -> {fst : a, snd : b}
 ```
 
 Generalisation can also take place as part of subtyping (a.k.a. signature
@@ -344,11 +344,11 @@ There are no datatype definitions, recursive types have to be defined
 explicitly, and require explicit injection/projection.
 
 ```1ml
-type stream = rec t => {hd : int, tl : () -> opt t}   ;; creates rec type
+type stream = rec t => {hd : int, tl : () ~> opt t}   ;; creates rec type
 single x = @stream{hd = x, tl = fun () => none}   ;; @(t) e rolls value into t
 @stream{hd = n} = single 5             ;; @(t) p pattern matches on rec value
 do Int.print n                         ;; or:
-do Int.print (single 7 .@stream .hd)   ;; e.@(t) unrolls rec value directly
+do Int.print (single 7).@stream.hd     ;; e.@(t) unrolls rec value directly
 ```
 
 #### Recursive Functions
@@ -366,7 +366,7 @@ repeat = rec self => fun x =>
 Mutual recursion is also expressible:
 
 ```1ml
-{even, odd} = rec (self : {even : int -> stream, odd : int -> stream}) => {
+{even, odd} = rec (self : {even : int ~> stream, odd : int ~> stream}) => {
   even x = @stream{hd = x, tl = fun () => some (self.odd (x + 1))}
   odd x = @stream{hd = x, tl = fun () => some (self.even (x + 1))}
 }
@@ -386,14 +386,14 @@ type OPT = {
   type opt a
   none 'a : opt a
   some 'a : a -> opt a
-  caseopt 'a 'b : opt a -> b -> (a -> b) -> b
+  caseopt 'a 'b : opt a -> b -> (a ~> b) ~> b
 }
 Opt :> OPT = {
   ;; Church encoding; it requires the abstract type opt a to be implemented
   ;; with a polymorphic (i.e., large) type. Thus, wrap the type.
-  type opt a = wrap (b : type) => b -> (a -> b) -> b
-  none = wrap (fun (b : type) (n : b) (s : _ -> b) => n) : opt _
-  some x = wrap (fun (b : type) (n : b) (s : _ -> b) => s x) : opt _
+  type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
+  none = wrap (fun (b : type) (n : b) (s : _ ~> b) => n) : opt _
+  some x = wrap (fun (b : type) (n : b) (s : _ ~> b) => s x) : opt _
   caseopt xo = (unwrap xo : opt _) _
 }
 ```

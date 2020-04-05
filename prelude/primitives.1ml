@@ -1,5 +1,5 @@
 local
-  pbo (p: _ => _) l r = p (l, r)
+  pbo (p: _ -> _) l r = p (l, r)
 
   PolyEq (type t) = {
     (==) = pbo (primitive "==" t)
