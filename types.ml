@@ -609,9 +609,9 @@ let rec string_of_typ' prec = function
       string_of_binder "!" aks ^
       string_of_typ' (binder_prec + 1) t ^
       (match f with
-      | Explicit Impure -> " -> "
-      | Explicit Pure -> " => "
-      | Implicit -> "'=> "
+      | Explicit Impure -> " ~> "
+      | Explicit Pure -> " -> "
+      | Implicit -> "'-> "
       ) ^
       string_of_extyp' binder_prec s
     )
@@ -783,9 +783,9 @@ let rec print_typ' prec ctxt = function
       print_string " ";
       print_string
         (match f with
-        | Explicit Impure -> "->"
-        | Explicit Pure -> "=>"
-        | Implicit -> "'=>"
+        | Explicit Impure -> "~>"
+        | Explicit Pure -> "->"
+        | Implicit -> "'->"
         );
       print_break 1 2;
       open_box 0;

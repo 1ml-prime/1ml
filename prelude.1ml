@@ -108,12 +108,12 @@ type OPT = {
   type opt a
   none 'a : opt a
   some 'a : a -> opt a
-  caseopt 'a 'b : opt a -> (() -> b) -> (a -> b) -> b
+  caseopt 'a 'b : opt a -> (() ~> b) -> (a ~> b) ~> b
 }
 Opt :> OPT = {
-  type opt a = wrap (b : type) => (() -> b) -> (a -> b) -> b
-  none 'a = wrap (fun (b : type) (n : () -> b) (s : a -> b) => n ()) : opt a
-  some 'a x = wrap (fun (b : type) (n : () -> b) (s : a -> b) => s x) : opt a
+  type opt a = wrap (b : type) -> (() ~> b) -> (a ~> b) ~> b
+  none 'a = wrap (fun (b : type) (n : () ~> b) (s : a ~> b) => n ()) : opt a
+  some 'a x = wrap (fun (b : type) (n : () ~> b) (s : a ~> b) => s x) : opt a
   caseopt xo = (unwrap xo : opt _) _
 }
 ...Opt
@@ -125,14 +125,14 @@ type ALT = {
   type alt a b
   left 'a 'b : a -> alt a b
   right 'a 'b : b -> alt a b
-  casealt 'a 'b 'c : alt a b -> (a -> c) -> (b -> c) -> c
+  casealt 'a 'b 'c : alt a b -> (a ~> c) -> (b ~> c) ~> c
 }
 Alt :> ALT = {
-  type alt a b = wrap (c : type) => (a -> c) -> (b -> c) -> c
+  type alt a b = wrap (c : type) -> (a ~> c) -> (b ~> c) ~> c
   left 'a 'b x =
-    wrap (fun (c : type) (l : a -> c) (r : b -> c) => l x) : alt a b
+    wrap (fun (c : type) (l : a ~> c) (r : b ~> c) => l x) : alt a b
   right 'a 'b x =
-    wrap (fun (c : type) (l : a -> c) (r : b -> c) => r x) : alt a b
+    wrap (fun (c : type) (l : a ~> c) (r : b ~> c) => r x) : alt a b
   casealt xy = (unwrap xy : alt _ _) _
 }
 ...Alt
@@ -144,28 +144,28 @@ type LIST_CORE = {
   type list a
   nil 'a : list a
   cons 'a : a -> list a -> list a
-  foldr 'a 'b : list a -> b -> (a -> b -> b) -> b
+  foldr 'a 'b : list a -> b -> (a ~> b ~> b) ~> b
 }
 type LIST = {
   ...LIST_CORE
-  caselist 'a 'b : list a -> (() -> b) -> (a -> list a -> b) -> b
-  isNil 'a : list a -> bool
-  head 'a : list a -> opt a
-  tail 'a : list a -> opt (list a)
-  length 'a : list a -> int
-  cat 'a : list a -> list a -> list a
-  rev 'a : list a -> list a
-  nth 'a : list a -> int -> opt a
-  map 'a 'b : list a -> (a -> b) -> list b
-  filter 'a : list a -> (a -> bool) -> list a
-  foldl 'a 'b : list a -> b -> (b -> a -> b) -> b
+  caselist 'a 'b : list a -> (() ~> b) -> (a ~> list a ~> b) ~> b
+  isNil 'a : list a ~> bool
+  head 'a : list a ~> opt a
+  tail 'a : list a ~> opt (list a)
+  length 'a : list a ~> int
+  cat 'a : list a -> list a ~> list a
+  rev 'a : list a ~> list a
+  nth 'a : list a -> int ~> opt a
+  map 'a 'b : list a -> (a ~> b) ~> list b
+  filter 'a : list a -> (a ~> bool) ~> list a
+  foldl 'a 'b : list a -> b -> (b ~> a ~> b) ~> b
 }
 List :> LIST = {
   ...{
-    type list a = wrap (b : type) => b -> (a -> b -> b) -> b
-    nil 'a = wrap (fun (b : type) (n : b) (c : a -> b -> b) => n) : list _
+    type list a = wrap (b : type) -> b -> (a ~> b ~> b) ~> b
+    nil 'a = wrap (fun (b : type) (n : b) (c : a ~> b ~> b) => n) : list _
     cons x xs =
-      wrap (fun (b : type) (n : b) (c : _ -> b -> b) =>
+      wrap (fun (b : type) (n : b) (c : _ ~> b ~> b) =>
         c x ((unwrap xs : list _) b n c)) : list _
     foldr xs = (unwrap xs : list _) _
   } :> LIST_CORE
@@ -195,7 +195,7 @@ List :> LIST = {
 
 type ORD = {
   type t
-  (<=) : t => t -> bool
+  (<=) : t -> t ~> bool
 }
 
 type SET = {
@@ -203,15 +203,15 @@ type SET = {
   type elem
   type t = set
   empty : set
-  add : elem -> set -> set
-  mem : elem -> set -> bool
+  add : elem -> set ~> set
+  mem : elem -> set ~> bool
   card : set -> int
 }
 
 Set (Elem : ORD) :> SET with (elem = Elem.t) = {
   type elem = Elem.t
   x == y = let ...Elem in (x <= y) && (y <= x)
-  type set = (int, elem -> bool)
+  type set = (int, elem ~> bool)
   type t = set
   empty = (0, fun (x : elem) => false)
   card (s : set) = s._1
@@ -229,14 +229,14 @@ type MAP = {
   type key
   type t a = map a
   empty 'a : map a
-  add 'a : key -> a -> map a -> map a
-  lookup 'a : key -> map a -> opt a
+  add 'a : key -> a -> map a ~> map a
+  lookup 'a : key -> map a ~> opt a
 }
 
 Map (Key : ORD) :> MAP with (key = Key.t) = {
   type key = Key.t
   x == y = let ...Key in (x <= y) && (y <= x)
-  type map a = key -> opt a
+  type map a = key ~> opt a
   t = map
   empty x = none
   lookup x m = m x

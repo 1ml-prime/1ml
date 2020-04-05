@@ -13,15 +13,15 @@ type DEC_PUNNING = {int, list}
 Equivalence: {
   type t a b
 
-  transitivity 'a 'b 'c: t a b => t b c -> t a c
+  transitivity 'a 'b 'c: t a b -> t b c -> t a c
   reflexivity 'a: t a a
 
   symmetry 'a 'b: t a b -> t b a
 
-  to   'a 'b: t a b => a -> b
-  from 'a 'b: t a b => b -> a
+  to   'a 'b: t a b -> a ~> b
+  from 'a 'b: t a b -> b ~> a
 } = {
-  type T a b = (type p _) -> p a -> p b
+  type T a b = (type p _) ~> p a ~> p b
   type t a b = wrap T a b
   wr (eq: T _ _) = wrap eq: t _ _
   un eq = unwrap eq: t _ _
@@ -29,9 +29,9 @@ Equivalence: {
     wr (fun (type p _) => un bc p << un ab p)
   reflexivity = wr (fun (type p _) => id)
   to eq a = un eq (fun (type x) => x) a
-  from 'a 'b (eq: t a b) b = un eq (fun (type b) => type b -> a) id b
+  from 'a 'b (eq: t a b) b = un eq (fun (type b) => type b ~> a) id b
   symmetry 'a 'b (eq: t a b) : t b a =
-    wr (fun (type p _) => un eq (fun (type b) => type p b -> p a) id)
+    wr (fun (type p _) => un eq (fun (type b) => type p b ~> p a) id)
 }
 
 ;;
@@ -65,7 +65,7 @@ seq_exps x : (_, _) =
 
 hole_is_allowed_type_pattern (type _ _) = ()
 
-typparams_allowed (id 'a: a => a) ({alsoId 'x: x => x}) =
+typparams_allowed (id 'a: a -> a) ({alsoId 'x: x -> x}) =
   alsoId (id 1, id "one", alsoId true)
 
 ;;
@@ -85,21 +85,21 @@ type_error { type_error 101 }
 ;;
 
 type_error {
-  Impure : () => {type t} = fun () =>
+  Impure : () -> {type t} = fun () =>
     if true then {type t = int} else {type t = bool} : {type t}
 }
 
-ImpureIf : () -> {type t} = fun () =>
+ImpureIf : () ~> {type t} = fun () =>
   if true then {type t = int} else {type t = bool} : {type t}
 
-PureIf : () => ('a => a => a) = fun () =>
-  if true then id else id : 'a => a => a
+PureIf : () -> ('a -> a -> a) = fun () =>
+  if true then id else id : 'a -> a -> a
 
-Pure : () => {type t = bool, existentials: t} = fun () =>
+Pure : () -> {type t = bool, existentials: t} = fun () =>
   {type t = bool, existentials = false} :> {type t = bool, existentials: t}
 
 type_error {
-  Impure : () => {type t, existentials: t} = fun () =>
+  Impure : () -> {type t, existentials: t} = fun () =>
     {type t = bool, existentials = true} :> {type t = bool, existentials: t}
 }
 
@@ -109,7 +109,7 @@ type_error rec (R: {}) => {
   kaboom () = R
 }
 
-Kaboom = rec (R: rec R => {kaboom: () -> R}) => @(= R) {
+Kaboom = rec (R: rec R => {kaboom: () ~> R}) => @(= R) {
   kaboom () = R
 }
 
@@ -130,10 +130,10 @@ Mutually = let
 in {
   ...rec (R: {
     Even: {
-      size 'x: T.Even.t x -> int
+      size 'x: T.Even.t x ~> int
     }
     Odd: {
-      size 'x: T.Odd.t x -> int
+      size 'x: T.Odd.t x ~> int
     }
   }) => {
     Even = {
@@ -170,14 +170,14 @@ Alt = {
 infix_type_pat 'a 'b (type _ | _) (x: a | b) = x
 infix_type_dec 'a 'b ({type _ | _}) (x: a | b) = x
 
-type infix_tycon_param a b = (type _ <+> _) => a <+> b
+type infix_tycon_param a b = (type _ <+> _) -> a <+> b
 
 type (a `>>` b) c = c
 
 ;;
 
 Hungry = {
-  type eat a = rec eat_a => a -> eat_a
+  type eat a = rec eat_a => a ~> eat_a
 
   eater 'a: eat a = rec (eater: eat a) => @(eat a) (fun a => eater)
 
@@ -208,9 +208,9 @@ N :> {
 ListN = let
   type I (type x) (type p _) (type t _ _) = {
     nil     :               p N.Z
-    (::) 'n : x -> t x n -> p (N.S n)
+    (::) 'n : x ~> t x n ~> p (N.S n)
   }
-  type T x n (type t _ _) = (type p _) => I x p t -> p n
+  type T x n (type t _ _) = (type p _) -> I x p t ~> p n
 in {
   ...rec {type t _ _} => {type t x n = wrap T x n t}
 
@@ -224,15 +224,15 @@ in {
 } :> {
   type t _ _
 
-  case 'x 'n: (type p _) => I x p t => t x n -> p n
+  case 'x 'n: (type p _) -> I x p t -> t x n ~> p n
 
   nil  'x    :               t x N.Z
-  (::) 'x 'n : x => t x n => t x (N.S n)
+  (::) 'x 'n : x -> t x n -> t x (N.S n)
 }
 
 ListN = {
   ...ListN
-  map 'x 'y (xy: x -> y) = rec (map 'n: t x n -> t y n) =>
+  map 'x 'y (xy: x ~> y) = rec (map 'n: t x n ~> t y n) =>
     case (t _) {
       nil
       x :: xs = xy x :: map xs
