@@ -11,10 +11,10 @@ Bool = {
 ;;
 
 Fun = {
-  type t a b = a -> b
+  type t a b = a ~> b
   id x = x
   const x _ = x
-  bot = rec (bot: _ => _) => fun x => bot x
+  bot = rec (bot: _ -> _) => fun x => bot x
   curry f x y = f (x, y)
   uncurry f (x, y) = f x y
   flip f x y = f y x
@@ -28,11 +28,11 @@ Fun = {
 
 Alt :> {
   type t _ _
-  inl 'a 'b: a => t a b
-  inr 'a 'b: b => t a b
-  case 'a 'b 'o: {inl: a -> o, inr: b -> o} => t a b -> o
+  inl 'a 'b: a -> t a b
+  inr 'a 'b: b -> t a b
+  case 'a 'b 'o: {inl: a ~> o, inr: b ~> o} -> t a b ~> o
 } = {
-  type t a b = wrap 'o => {inl: a -> o, inr: b -> o} -> o
+  type t a b = wrap 'o -> {inl: a ~> o, inr: b ~> o} ~> o
   inl x = wrap (fun c => c.inl x): t _ _
   inr x = wrap (fun c => c.inr x): t _ _
   case c (wrap x: t _ _) = x c

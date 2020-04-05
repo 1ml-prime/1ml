@@ -9,14 +9,14 @@ tail = case {nil = none, _::xs = some xs}
 
 foldr (::) nil = rec loop => case {nil, x::xs = x::loop xs}
 
-foldl xss = rec (loop: _ => _) => fun s => case {
+foldl xss = rec (loop: _ -> _) => fun s => case {
   nil = s
   x :: xs = loop (xss x s) xs
 }
 
 length = foldl (const 1 >> (+)) 0
 
-nth = rec (loop: _ => _) => fun n => case {
+nth = rec (loop: _ -> _) => fun n => case {
   nil = none
   x :: xs = if n == 0 then some x else loop (n-1) xs
 }
