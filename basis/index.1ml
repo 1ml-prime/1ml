@@ -6,7 +6,7 @@ List = import "./list"
 
 type ORD = {
   type t
-  (<=) : t => t -> Bool.t
+  (<=) : t -> t ~> Bool.t
 }
 
 type SET = {
@@ -14,15 +14,15 @@ type SET = {
   type elem
   type t = set
   empty : set
-  add : elem -> set -> set
-  mem : elem -> set -> bool
-  card : set -> int
+  add : elem -> set ~> set
+  mem : elem -> set ~> bool
+  card : set ~> int
 }
 
 Set (Elem : ORD) :> SET with (elem = Elem.t) = {
   type elem = Elem.t
   x == y = let ...Elem in (x <= y) && (y <= x)
-  type set = (int, elem -> bool)
+  type set = (int, elem ~> bool)
   type t = set
   empty = (0, fun (x : elem) => false)
   card (s : set) = s._1
@@ -40,14 +40,14 @@ type MAP = {
   type key
   type t a = map a
   empty 'a : map a
-  add 'a : key -> a -> map a -> map a
-  lookup 'a : key -> map a -> opt a
+  add 'a : key -> a -> map a ~> map a
+  lookup 'a : key -> map a ~> opt a
 }
 
 Map (Key : ORD) :> MAP with (key = Key.t) = {
   type key = Key.t
   x == y = let ...Key in (x <= y) && (y <= x)
-  type map a = key -> opt a
+  type map a = key ~> opt a
   t = map
   empty x = none
   lookup x m = m x
