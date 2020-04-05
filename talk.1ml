@@ -13,10 +13,10 @@ M = { type point a = {x : a, y : a} }
 M = { point = fun (a : type) => type {x : a, y : a} }
 
 type S = { type point a }
-type S = { point : (a : type) => type }
+type S = { point : (a : type) -> type }
 
 type T = { type point a = {x : a, y : a} }
-type T = { point : (a : type) => (= type {x : a, y : a}) }
+type T = { point : (a : type) -> (= type {x : a, y : a}) }
 
 M' = M : S
 M'' = M :> T
@@ -26,20 +26,20 @@ M'' = M :> T
 
 type EQ = {
   type t
-  eq : t -> t -> bool
+  eq : t -> t ~> bool
 }
 
 type MAP = {
   type key
   type map a
   empty a : map a
-  lookup a : key -> map a -> opt a
-  add a : key -> a -> map a -> map a
+  lookup a : key -> map a ~> opt a
+  add a : key -> a -> map a ~> map a
 }
 
 Map (Key : EQ) :> MAP with (type key = Key.t) = {
   type key = Key.t
-  type map a = key -> opt a
+  type map a = key ~> opt a
   empty (a : type) = fun (x : key) => none
   lookup (a : type) (x : key) (m : map a) = m x
   add (a : type) (x : key) (y : a) (m : map a) =
@@ -53,13 +53,13 @@ type MAP = {
   type key
   type map a
   empty 'a : map a
-  lookup 'a : key -> map a -> opt a
-  add 'a : key -> a -> map a -> map a
+  lookup 'a : key -> map a ~> opt a
+  add 'a : key -> a -> map a ~> map a
 }
 
 Map (Key : EQ) :> MAP with (type key = Key.t) = {
   type key = Key.t
-  type map a = key -> opt a
+  type map a = key ~> opt a
   empty = fun x => none
   lookup x m = m x
   add x y m = fun z => if Key.eq z x then some y else m z
@@ -68,7 +68,7 @@ Map (Key : EQ) :> MAP with (type key = Key.t) = {
 
 ;; Higher-rank polymorphism
 
-f (id : 'a => a -> a) = (id 5, id "text")
+f (id : 'a -> a -> a) = (id 5, id "text")
 
 
 ;; Asociated types
@@ -77,9 +77,9 @@ type COLL c = {
   type key
   type val
   empty : c
-  add : c -> key -> val -> c
-  lookup : c -> key -> opt val
-  keys : c -> list key
+  add : c -> key -> val ~> c
+  lookup : c -> key ~> opt val
+  keys : c ~> list key
 }
 
 entries 'c (C : COLL c) xs : list (type (C.key, C.val)) =
@@ -88,29 +88,28 @@ entries 'c (C : COLL c) xs : list (type (C.key, C.val)) =
 
 ;; Higher-kinded polymorphism
 
-type MONAD (m : type => type) = {
-  return 'a : a -> m a
-  bind 'a 'b : m a -> (a -> m b) -> m b
+type MONAD (m : type -> type) = {
+  return 'a : a ~> m a
+  bind 'a 'b : m a -> (a ~> m b) ~> m b
 }
 
-map 'a 'b (m : type => type) (M : MONAD m) (f : a -> b) mx =
+map 'a 'b (m : type -> type) (M : MONAD m) (f : a ~> b) mx =
   M.bind mx (fun x => M.return (f x))
 
-do map :
-  'a => 'b => (m : type => type) => (M : MONAD m) => (a -> b) -> m a -> m b
+do map : 'a -> 'b -> (m: type -> type) -> (M: MONAD m) -> (a ~> b) ~> m a ~> m b
 
 
 ;; Objects
 
 type point' self = {
-  getX : () -> int
-  getY : () -> int
-  move : int -> int -> self
+  getX : () ~> int
+  getY : () ~> int
+  move : int ~> int ~> self
 }
 type recpoint = rec (x : type) => point' x
 type point = point' recpoint
 
-newpoint = rec (newpoint : int => int => point) => fun x y => {
+newpoint = rec (newpoint : int -> int -> point) => fun x y => {
   getX () = x
   getY () = y
   move dx dy = @recpoint (newpoint (x + dx) (y + dy))

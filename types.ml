@@ -783,9 +783,9 @@ let rec print_typ' prec ctxt = function
       print_string " ";
       print_string
         (match f with
-        | Explicit Impure -> "->"
-        | Explicit Pure -> "=>"
-        | Implicit -> "'=>"
+        | Explicit Impure -> "~>"
+        | Explicit Pure -> "->"
+        | Implicit -> "'->"
         );
       print_break 1 2;
       open_box 0;

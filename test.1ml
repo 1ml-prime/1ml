@@ -79,12 +79,12 @@ type OPT = {
   type opt a
   none 'a : opt a
   some 'a : a -> opt a
-  caseopt 'a 'b : opt a -> b -> (a -> b) -> b
+  caseopt 'a 'b : opt a -> b -> (a ~> b) ~> b
 }
 Opt :> OPT = {
-  type opt a = wrap (b : type) => b -> (a -> b) -> b
-  none = wrap (fun (b : type) (n : b) (s : _ -> b) => n) : opt _
-  some x = wrap (fun (b : type) (n : b) (s : _ -> b) => s x) : opt _
+  type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
+  none = wrap (fun (b : type) (n : b) (s : _ ~> b) => n) : opt _
+  some x = wrap (fun (b : type) (n : b) (s : _ ~> b) => s x) : opt _
   caseopt xo = (unwrap xo : opt _) _
 }
 ...Opt
@@ -95,12 +95,12 @@ type ALT = {
   type alt a b
   left 'a 'b : a -> alt a b
   right 'a 'b : b -> alt a b
-  casealt 'a 'b 'c : alt a b -> (a -> c) -> (b -> c) -> c
+  casealt 'a 'b 'c : alt a b -> (a ~> c) -> (b ~> c) ~> c
 }
 Alt :> ALT = {
-  type alt a b = wrap (c : type) => (a -> c) -> (b -> c) -> c
-  left x = wrap (fun (c : type) (l : _ -> c) (r : _ -> c) => l x) : alt _ _
-  right x = wrap (fun (c : type) (l : _ -> c) (r : _ -> c) => r x) : alt _ _
+  type alt a b = wrap (c : type) -> (a ~> c) -> (b ~> c) ~> c
+  left x = wrap (fun (c : type) (l : _ ~> c) (r : _ ~> c) => l x) : alt _ _
+  right x = wrap (fun (c : type) (l : _ ~> c) (r : _ ~> c) => r x) : alt _ _
   casealt xy = (unwrap xy : alt _ _) _
 }
 ...Alt
@@ -111,28 +111,28 @@ type LIST_CORE = {
   type list a
   nil 'a : list a
   cons 'a : a -> list a -> list a
-  foldr 'a 'b : list a -> b -> (a -> b -> b) -> b
+  foldr 'a 'b : list a -> b -> (a ~> b ~> b) ~> b
 }
 type LIST = {
   ...LIST_CORE
-  caselist 'a 'b : list a -> b -> (a -> list a -> b) -> b
-  isNil 'a : list a -> bool
-  head 'a : list a -> opt a
-  tail 'a : list a -> opt (list a)
-  length 'a : list a -> int
-  cat 'a : list a -> list a -> list a
-  rev 'a : list a -> list a
-  nth 'a : list a -> int -> opt a
-  map 'a 'b : list a -> (a -> b) -> list b
-  foldl 'a 'b : list a -> b -> (b -> a -> b) -> b
-;;  foldr 'a 'b : list a -> b -> (a -> b -> b) -> b
+  caselist 'a 'b : list a -> b -> (a ~> list a ~> b) ~> b
+  isNil 'a : list a ~> bool
+  head 'a : list a ~> opt a
+  tail 'a : list a ~> opt (list a)
+  length 'a : list a ~> int
+  cat 'a : list a -> list a ~> list a
+  rev 'a : list a ~> list a
+  nth 'a : list a -> int ~> opt a
+  map 'a 'b : list a -> (a ~> b) ~> list b
+  foldl 'a 'b : list a -> b -> (b ~> a ~> b) ~> b
+;;  foldr 'a 'b : list a -> b -> (a ~> b ~> b) ~> b
 }
 List :> LIST = {
   ...{
-    type list a = wrap (b : type) => b -> (a -> b -> b) -> b
-    nil = wrap (fun (b : type) (n : b) (c : _ -> b -> b) => n) : list _
+    type list a = wrap (b : type) -> b -> (a ~> b ~> b) ~> b
+    nil = wrap (fun (b : type) (n : b) (c : _ ~> b ~> b) => n) : list _
     cons x xs =
-      wrap (fun (b : type) (n : b) (c : _ -> b -> b) =>
+      wrap (fun (b : type) (n : b) (c : _ ~> b ~> b) =>
         c x ((unwrap xs : list _) b n c)) : list _
     foldr xs = (unwrap xs : list _) _
   } :> LIST_CORE
@@ -155,10 +155,10 @@ List :> LIST = {
 }
 (;
 List :> LIST = {
-  type list a = (b : type) => b -> (a -> b -> b) -> b
-  nil a b (n : b) (c : a -> b -> b) = n
-  cons a (x : a) (xs : list a) b (n : b) (c : a -> b -> b) = c x (xs b n c)
-  foldr a b (xs : list a) = xs b : b -> (a -> b -> b) -> b
+  type list a = (b : type) -> b -> (a ~> b ~> b) ~> b
+  nil a b (n : b) (c : a ~> b ~> b) = n
+  cons a (x : a) (xs : list a) b (n : b) (c : a ~> b ~> b) = c x (xs b n c)
+  foldr a b (xs : list a) = xs b : b -> (a ~> b ~> b) ~> b
   isNil a (xs : list a) =
     foldr a bool xs true (fun (_ : a) (_ : bool) => false)
   head a (xs : list a) =
@@ -169,7 +169,7 @@ List :> LIST = {
       (nil a, none (list a))
       (fun (x : a) (acc : t) => (cons a x acc.1, some (list a) acc.1))
     ).2
-  caselist a b (xs : list a) (n : b) (c : a -> list a -> b) =
+  caselist a b (xs : list a) (n : b) (c : a ~> list a ~> b) =
     caseopt a b (head a xs)
       n
       (fun (x : a) => caseopt (list a) b (tail a xs)
@@ -182,9 +182,9 @@ List :> LIST = {
   rev a (xs : list a) =
     foldr a (list a) xs (nil a)
       (fun (x : a) (xs : list a) => cat a xs (cons a x (nil a)))
-  map a b (xs : list a) (f : a -> b) =
+  map a b (xs : list a) (f : a ~> b) =
     foldr a (list b) xs (nil b) (fun (x : a) => cons b (f x))
-  foldl a b (xs : list a) (x : b) (f : b -> a -> b) =
+  foldl a b (xs : list a) (x : b) (f : b ~> a ~> b) =
     foldr a b (rev a xs) x (fun (x : a) (y : b) => f y x)
   nth a (xs : list a) (n : int) =
     let (==) = equal int in
@@ -201,7 +201,7 @@ do log "Set"
 
 type ORD = {
   type t
-  (<=) : t => t -> bool
+  (<=) : t -> t ~> bool
 }
 
 type SET = {
@@ -209,14 +209,14 @@ type SET = {
   type elem
   type t = set
   empty : set
-  add : elem -> set -> set
-  mem : elem -> set -> bool
-  card : set -> int
+  add : elem -> set ~> set
+  mem : elem -> set ~> bool
+  card : set ~> int
 }
 
 Set (Elem : ORD) :> SET with (elem = Elem.t) = {
   type elem = Elem.t
-  type set = (int, elem -> bool)
+  type set = (int, elem ~> bool)
   type t = set
   empty = (0, fun (x : elem) => false)
   card (s : set) = s._1
@@ -233,13 +233,13 @@ type MAP = {
   type key
   type t a = map a
   empty 'a : map a
-  add 'a : key -> a -> map a -> map a
-  lookup 'a : key -> map a -> opt a
+  add 'a : key -> a -> map a ~> map a
+  lookup 'a : key -> map a ~> opt a
 }
 
 Map (Key : ORD) :> MAP with (key = Key.t) = {
   type key = Key.t
-  type map a = key -> opt a
+  type map a = key ~> opt a
   t = map
   empty x = none
   lookup x m = m x
@@ -257,7 +257,7 @@ TestSetAndMap = {
 
 let
   f x = nil
-  g 'a : () -> list a = f
+  g 'a : () ~> list a = f
 in {
   G (type t) = {
     ...{type u = t, v = nil} :> {type u, v : list u}

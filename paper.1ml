@@ -32,12 +32,12 @@ M = {
 
 M_opaque = M : {
   size : type
-  pair : (a : type) => (b : type) => type
+  pair : (a : type) -> (b : type) -> type
 }
 
 M_transparent = M : {
   size : (= type int)
-  pair : (a : type) => (b : type) => (= type {fst : a, snd : b})
+  pair : (a : type) -> (b : type) -> (= type {fst : a, snd : b})
 }
 
 M_opaque = M : {
@@ -54,20 +54,20 @@ M_transparent = M : {
 
 type EQ = {
   type t
-  eq : t -> t -> bool
+  eq : t -> t ~> bool
 }
 
 type MAP = {
   type key
   type map a
   empty (a : type) : map a
-  add (a : type) : key -> a -> map a -> map a
-  lookup (a : type) : key -> map a -> opt a
+  add (a : type) : key -> a -> map a ~> map a
+  lookup (a : type) : key -> map a ~> opt a
 }
 
 Map (Key : EQ) :> MAP with (type key = Key.t) = {
   type key = Key.t
-  type map a = key -> opt a
+  type map a = key ~> opt a
   empty (a : type) = fun (k : key) => none
   lookup (a : type) (k : key) (m : map a) = m k
   add (a : type) (k : key) (v : a) (m : map a) =
@@ -76,16 +76,16 @@ Map (Key : EQ) :> MAP with (type key = Key.t) = {
 
 ;; Applicative vs. Generative
 
-F = (fun (a : type) => type {x : a}) :> type => type
-G = (fun (a : type) => type {x : a}) :> type -> type
+F = (fun (a : type) => type {x : a}) :> type -> type
+G = (fun (a : type) => type {x : a}) :> type ~> type
 H = fun (a : type) => (type {x : a} :> type)
-type_error G :> type => type
+type_error G :> type -> type
 
 ;; Higher Polymorphism
 
-f (id : (a : type) => a -> a) = {x = id int 5, y = id bool true}
+f (id : (a : type) -> a ~> a) = {x = id int 5, y = id bool true}
 
-type SHAPE = {type t, area : t -> int, v : t}
+type SHAPE = {type t, area : t ~> int, v : t}
 volume (height : int) (s : SHAPE) = height * s.area s.v
 area ss = List.foldl ss 0 (fun a (wrap s : wrap SHAPE) => a + s.area s.v)
 
@@ -93,26 +93,26 @@ type COLL c = {
   type key
   type val
   empty : c
-  add : c -> key -> val -> c
-  lookup : c -> key -> opt val
-  keys : c -> list key
+  add : c -> key -> val ~> c
+  lookup : c -> key ~> opt val
+  keys : c ~> list key
 }
 entries (c : type) (C : COLL c) (xs : c) : list (type (C.key, C.val)) =
   List.map (C.keys xs) (fun (k : C.key) => (k, caseopt (C.lookup xs k) bot id))
 
-type MONAD (m : type => type) = {
-  return (a : type) : a -> m a
-  bind (a : type) (b : type) : m a -> (a -> m b) -> m b
+type MONAD (m : type -> type) = {
+  return (a : type) : a ~> m a
+  bind (a : type) (b : type) : m a -> (a ~> m b) ~> m b
 }
-map (a : type) (b : type) (m : type => type) (M : MONAD m) (f : a -> b) (mx : m a) =
+map (a : type) (b : type) (m : type -> type) (M : MONAD m) (f : a ~> b) (mx : m a) =
   M.bind a b mx (fun (x : a) => M.return b (f x))  ;; : m b
 
 ;; ...the same with implicit types:
-type MONAD (m : type => type) = {
-  return 'a : a -> m a
-  bind 'a 'b : m a -> (a -> m b) -> m b
+type MONAD (m : type -> type) = {
+  return 'a : a ~> m a
+  bind 'a 'b : m a -> (a ~> m b) ~> m b
 }
-map (m : type => type) (M : MONAD m) f mx =
+map (m : type -> type) (M : MONAD m) f mx =
   M.bind mx (fun x => M.return (f x))
 
 ;; Computed Modules
@@ -124,24 +124,24 @@ pickTable (size : int) (threshold : int) (HashMap : MAP) (TreeMap : MAP) = {
 (;
 type MONAD = {
   type t a
-  return (a : type) : a -> t a
-  bind (a : type) (b : type) : t a -> (a -> t b) -> t b
+  return (a : type) : a ~> t a
+  bind (a : type) (b : type) : t a -> (a ~> t b) ~> t b
 }
 type MONAD_TRANS = {
   ... MONAD
   type base a
-  lift (a : type) : base a -> t a
-  join (a : type) : t (base a) -> t a
+  lift (a : type) : base a ~> t a
+  join (a : type) : t (base a) ~> t a
 }
 
-mapM (M : MONAD) (a : type) (b : type) (f : a -> b) (m : M.t a) : M.t b =
+mapM (M : MONAD) (a : type) (b : type) (f : a ~> b) (m : M.t a) : M.t b =
   M.bind a b m (fun (x : a) => M.return b (f x))
 
 joinM (M : MONAD) (a : type) (mm : M.t (M.t a)) : M.t a =
   M.bind (M.t a) a mm (fun (m : M.t a) => m)
 
 StackM (M : MONAD) =
-  rec (Loop : (n : int) -> (MONAD_TRANS with (base = M.t))) =>
+  rec (Loop : (n : int) ~> (MONAD_TRANS with (base = M.t))) =>
   fun (n : int) =>
   if n == 1 then
     { ... M
@@ -157,7 +157,7 @@ StackM (M : MONAD) =
       lift (a : type) (m : base a) = M'.return (M.t a) m
       join (a : type) (m : t (base a)) = M'.join (base a) m
       return (a : type) (x : a) = M'.return (M.t a) (M.return a x)
-      bind (a : type) (b : type) (m : t a) (f : a -> t b) =
+      bind (a : type) (b : type) (m : t a) (f : a ~> t b) =
         M'.bind (M.t a) (M.t b) m
           (fun (mx : M.t a) => M.bind a b mx
             (fun (x : a) => f x))
@@ -170,8 +170,8 @@ StackM (M : MONAD) =
 type T1 = type
 type T2 = {type u}
 type T3 = {type u = T2}
-type T4 = (x : {}) -> type
-type T5 = (a : type) => {}
+type T4 = (x : {}) ~> type
+type T5 = (a : type) -> {}
 type T6 = {type u a = bool}
 
 type Ti = T1
@@ -203,26 +203,26 @@ type_error { Test (X : MONSTER) = X : MONSTER }
 ;; Section 4: Full 1ML
 
 SubtypingImplicitsWithTypeMatching =
-  fun (X : '(a : type) => {type t = a, f : a -> t}) =>
-       X : {type t, f : int -> int}
+  fun (X : '(a : type) -> {type t = a, f : a ~> t}) =>
+       X : {type t, f : int ~> int}
 
 type MAP = {
   type key
   type map a
   empty 'a : map a
-  lookup 'a : key -> map a -> opt a
-  add 'a : key -> a -> map a -> map a
+  lookup 'a : key -> map a ~> opt a
+  add 'a : key -> a -> map a ~> map a
 }
 Map (Key : EQ) :> MAP with (type key = Key.t) = {
   type key = Key.t
-  type map a = key -> opt a
+  type map a = key ~> opt a
   empty = fun x => none
   lookup x m = m x
   add x y m = fun z => if Key.eq z x then some y else m z
 }
 
 FirstClassImplicit =
-  (fun (id : 'a  => a -> a) => {x = id 3, y = id true}) (fun x => x)
+  (fun (id : 'a -> a -> a) => {x = id 3, y = id true}) (fun x => x)
 
 
 ;; Section 5: Inference
@@ -230,7 +230,7 @@ FirstClassImplicit =
 
 ;; Type Scoping
 
-id : 'a => a -> a = fun x => x
+id : 'a -> a ~> a = fun x => x
 G (x : int) = {M = {type t = int, v = x} :> {type t, v : t}, f = id id}
 C = G 3
 type_error C.f C.M.v
@@ -242,13 +242,13 @@ C = G 3
 x = C.f C.M.v
 
 ;; ...or with type annotation:
-id : 'a => a -> a = fun x => x
-G (x : int) = {M = {type t = int, v = x} :> {type t, v : t}, f : M.t -> M.t = id id}
+id : 'a -> a ~> a = fun x => x
+G (x : int) = {M = {type t = int, v = x} :> {type t, v : t}, f : M.t ~> M.t = id id}
 C = G 3
 x = C.f C.M.v
 
 ;; ...or when applying G twice.
-id : 'a => a -> a = fun x => x
+id : 'a -> a ~> a = fun x => x
 G (x : int) = {M = {type t = int, v = x} :> {type t, v : t}, f = id id}
 C = G 3
 C' = G 3
@@ -262,11 +262,11 @@ type OPT = {
   type opt a
   none 'a : opt a
   some 'a : a -> opt a
-  caseopt 'a 'b : opt a -> b -> (a -> b) -> b
+  caseopt 'a 'b : opt a -> b -> (a ~> b) ~> b
 }
 Opt :> OPT = {
-  type opt a = wrap (b : type) => b -> (a -> b) -> b
-  none 'a = wrap (fun (b : type) (n : b) (s : a -> b) => n) : opt a
-  some 'a x = wrap (fun (b : type) (n : b) (s : a -> b) => s x) : opt a
+  type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
+  none 'a = wrap (fun (b : type) (n : b) (s : a ~> b) => n) : opt a
+  some 'a x = wrap (fun (b : type) (n : b) (s : a ~> b) => s x) : opt a
   caseopt 'a 'b xo = (unwrap xo : opt a) b
 }
