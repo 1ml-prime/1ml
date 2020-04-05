@@ -28,7 +28,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %token HOLE PRIMITIVE
 %token FUN REC LET IN DO WRAP UNWRAP TYPE ELLIPSIS
 %token IF THEN ELSE LOGICAL_OR LOGICAL_AND AS
-%token EQUAL COLON SEAL ARROW DARROW
+%token EQUAL COLON SEAL ARROW SARROW DARROW
 %token WITH
 %token LPAR RPAR
 %token LBRACE RBRACE
@@ -159,9 +159,9 @@ oneexplparam :
     { [$1] }
 ;
 arrow :
-  | ARROW
+  | SARROW
     { Impure@@at() }
-  | DARROW
+  | ARROW
     { Pure@@at() }
 ;
 

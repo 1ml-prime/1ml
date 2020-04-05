@@ -244,6 +244,7 @@ rule token = parse
   | ":" { COLON }
   | ":>" { SEAL }
   | "->" { ARROW }
+  | "~>" { SARROW }
   | "=>" { DARROW }
   | "." { DOT }
   | "'" { TICK }

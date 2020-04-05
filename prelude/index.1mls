@@ -6,98 +6,98 @@ local
 
 Alt: {
   type t _ _
-  inl 'a 'b: a => t a b
-  inr 'a 'b: b => t a b
-  case 'a 'b 'o: {inl: a -> o, inr: b -> o} => t a b -> o
-  either 'a 'b 'o: (a -> o) => (b -> o) => t a b -> o
-  plus 'a 'b 'c 'd: (a -> c) => (b -> d) => t a b -> t c d
+  inl 'a 'b: a -> t a b
+  inr 'a 'b: b -> t a b
+  case 'a 'b 'o: {inl: a ~> o, inr: b ~> o} -> t a b ~> o
+  either 'a 'b 'o: (a ~> o) -> (b ~> o) -> t a b ~> o
+  plus 'a 'b 'c 'd: (a ~> c) -> (b ~> d) -> t a b ~> t c d
 }
 
 Bool: {
   type t = bool
-  (==): t => t => bool
-  (<>): t => t => bool
+  (==): t -> t -> bool
+  (<>): t -> t -> bool
   true: t
   false: t
-  not: t => t
-  toText: t => text
+  not: t -> t
+  toText: t -> text
 }
 
 Char: {
   type t = char
-  (==): t => t => bool
-  (<>): t => t => bool
-  toInt: t => int
-  fromInt: int => t
-  print: t -> {}
+  (==): t -> t -> bool
+  (<>): t -> t -> bool
+  toInt: t -> int
+  fromInt: int -> t
+  print: t ~> {}
 }
 
 Fun: {
-  type t a b = a -> b
-  id 'a: a => a
-  const 'a 'b: a => b => a
-  bot 'a 'b: a => b
-  curry 'a 'b 'c: ((a, b) -> c) => a => b -> c
-  uncurry 'a 'b 'c: (a -> b -> c) => (a, b) -> c
-  flip 'a 'b 'c: (a -> b -> c) => b => a -> c
-  (<<) 'a 'b 'c: (b -> c) => (a -> b) => a -> c
-  (>>) 'a 'b 'c: (a -> b) => (b -> c) => a -> c
-  (<|) 'a 'b: (a -> b) => a -> b
-  (|>) 'a 'b: a => (a -> b) -> b
+  type t a b = a ~> b
+  id 'a: a -> a
+  const 'a 'b: a -> b -> a
+  bot 'a 'b: a -> b
+  curry 'a 'b 'c: ((a, b) ~> c) -> a -> b ~> c
+  uncurry 'a 'b 'c: (a ~> b ~> c) -> (a, b) ~> c
+  flip 'a 'b 'c: (a ~> b ~> c) -> b -> a ~> c
+  (<<) 'a 'b 'c: (b ~> c) -> (a ~> b) -> a ~> c
+  (>>) 'a 'b 'c: (a ~> b) -> (b ~> c) -> a ~> c
+  (<|) 'a 'b: (a ~> b) -> a ~> b
+  (|>) 'a 'b: a -> (a ~> b) ~> b
 }
 
 Int: {
   type t = int
-  (==): t => t => bool
-  (<>): t => t => bool
-  (<): t => t => bool
-  (>): t => t => bool
-  (<=): t => t => bool
-  (>=): t => t => bool
-  (+): t => t => t
-  (-): t => t => t
-  (*): t => t => t
-  (/): t => t => t
-  (%): t => t => t
-  toText: t => text
-  print: t -> {}
+  (==): t -> t -> bool
+  (<>): t -> t -> bool
+  (<): t -> t -> bool
+  (>): t -> t -> bool
+  (<=): t -> t -> bool
+  (>=): t -> t -> bool
+  (+): t -> t -> t
+  (-): t -> t -> t
+  (*): t -> t -> t
+  (/): t -> t -> t
+  (%): t -> t -> t
+  toText: t -> text
+  print: t ~> {}
 }
 
 List: {
   type t _
   nil 'a: t a
-  (::) 'a: a => t a => t a
-  case 'a 'o: {nil: o, (::): a -> t a -> o} => t a -> o
+  (::) 'a: a -> t a -> t a
+  case 'a 'o: {nil: o, (::): a ~> t a ~> o} -> t a ~> o
 }
 
 Opt: {
   type t _
   none 'a: t a
-  some 'a: a => t a
-  case 'a 'o: {none: o, some: a -> o} => t a -> o
+  some 'a: a -> t a
+  case 'a 'o: {none: o, some: a ~> o} -> t a ~> o
 }
 
 Pair: {
   type t a b = (a, b)
-  fst 'a 'b: (a, b) => a
-  snd 'a 'b: (a, b) => b
-  cross 'a 'b 'c 'd: (a -> c) => (b -> d) => (a, b) -> (c, d)
-  fork 'a 'b 'c: (a -> b) => (a -> c) => a -> (b, c)
+  fst 'a 'b: (a, b) -> a
+  snd 'a 'b: (a, b) -> b
+  cross 'a 'b 'c 'd: (a ~> c) -> (b ~> d) -> (a, b) ~> (c, d)
+  fork 'a 'b 'c: (a ~> b) -> (a ~> c) -> a ~> (b, c)
 }
 
 Text: {
   type t = text
-  (==): t => t => bool
-  (<>): t => t => bool
-  (<): t => t => bool
-  (>): t => t => bool
-  (<=): t => t => bool
-  (>=): t => t => bool
-  (++): t => t => t
-  length: t => int
-  sub: t => int => char
-  fromChar: char => t
-  print: t -> {}
+  (==): t -> t -> bool
+  (<>): t -> t -> bool
+  (<): t -> t -> bool
+  (>): t -> t -> bool
+  (<=): t -> t -> bool
+  (>=): t -> t -> bool
+  (++): t -> t -> t
+  length: t -> int
+  sub: t -> int -> char
+  fromChar: char -> t
+  print: t ~> {}
 }
 
 type alt a b = Alt.t a b
@@ -108,41 +108,41 @@ type list a = List.t a
 type opt a = Opt.t a
 type text = Text.t
 
-(%): int => int => int
-(*): int => int => int
-(+): int => int => int
-(++): text => text => text
-(-): int => int => int
-(/): int => int => int
-(::) 'a: a => list a => list a
-(<): int => int => bool
-(<<) 'a 'b 'c: (b -> c) => (a -> b) => a -> c
-(<=): int => int => bool
-(<>): int => int => bool
-(<|) 'a 'b: (a -> b) => a -> b
-(==): int => int => bool
-(>): int => int => bool
-(>=): int => int => bool
-(>>) 'a 'b 'c: (a -> b) => (b -> c) => a -> c
-(|>) 'a 'b: a => (a -> b) -> b
-bot 'a 'b: a => b
-const 'a 'b: a => b => a
-cross 'a 'b 'c 'd: (a -> c) => (b -> d) => (a, b) -> (c, d)
-curry 'a 'b 'c: ((a, b) -> c) => a => b -> c
-either 'a 'b 'o: (a -> o) => (b -> o) => alt a b -> o
+(%): int -> int -> int
+(*): int -> int -> int
+(+): int -> int -> int
+(++): text -> text -> text
+(-): int -> int -> int
+(/): int -> int -> int
+(::) 'a: a -> list a -> list a
+(<): int -> int -> bool
+(<<) 'a 'b 'c: (b ~> c) -> (a ~> b) -> a ~> c
+(<=): int -> int -> bool
+(<>): int -> int -> bool
+(<|) 'a 'b: (a ~> b) -> a ~> b
+(==): int -> int -> bool
+(>): int -> int -> bool
+(>=): int -> int -> bool
+(>>) 'a 'b 'c: (a ~> b) -> (b ~> c) -> a ~> c
+(|>) 'a 'b: a -> (a ~> b) ~> b
+bot 'a 'b: a -> b
+const 'a 'b: a -> b -> a
+cross 'a 'b 'c 'd: (a ~> c) -> (b ~> d) -> (a, b) ~> (c, d)
+curry 'a 'b 'c: ((a, b) ~> c) -> a -> b ~> c
+either 'a 'b 'o: (a ~> o) -> (b ~> o) -> alt a b ~> o
 false: bool
-flip 'a 'b 'c: (a -> b -> c) => b => a -> c
-fork 'a 'b 'c: (a -> b) => (a -> c) => a -> (b, c)
-fst 'a 'b: (a, b) => a
-id 'a: a => a
-inl 'a 'b: a => alt a b
-inr 'a 'b: b => alt a b
+flip 'a 'b 'c: (a ~> b ~> c) -> b -> a ~> c
+fork 'a 'b 'c: (a ~> b) -> (a ~> c) -> a ~> (b, c)
+fst 'a 'b: (a, b) -> a
+id 'a: a -> a
+inl 'a 'b: a -> alt a b
+inr 'a 'b: b -> alt a b
 nil 'a: list a
 none 'a: opt a
-not: bool => bool
-plus 'a 'b 'c 'd: (a -> c) => (b -> d) => alt a b -> alt c d
-print: text -> {}
-snd 'a 'b: (a, b) => b
-some 'a: a => opt a
+not: bool -> bool
+plus 'a 'b 'c 'd: (a ~> c) -> (b ~> d) -> alt a b ~> alt c d
+print: text ~> {}
+snd 'a 'b: (a, b) -> b
+some 'a: a -> opt a
 true: bool
-uncurry 'a 'b 'c: (a -> b -> c) => (a, b) -> c
+uncurry 'a 'b 'c: (a ~> b ~> c) -> (a, b) ~> c
