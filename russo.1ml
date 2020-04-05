@@ -30,10 +30,10 @@ ArraySucc (A : ARRAY) = {
     else (a.1, A.update a.2 (i / 2) x)
 }
 
-MkArray = rec (mkArray : int -> ARRAY) => fun n =>
+MkArray = rec (mkArray : int ~> ARRAY) => fun n =>
   if n == 0 then ArrayZero else ArraySucc (mkArray (n - 1)) : ARRAY
 
-printArray 't (A : ARRAY) (pr : t -> ()) a =
+printArray 't (A : ARRAY) (pr : t ~> ()) a =
   let loop = rec loop => fun i =>
     if i == A.dim then print "\n"
     else (pr (A.sub a i) ; print " " ; loop (i + 1))
@@ -58,8 +58,8 @@ do printArray A32 Int.print a
 type STREAM = {
   type state
   start : state
-  next : state -> state
-  value : state -> int
+  next : state ~> state
+  value : state ~> int
 }
 
 divides k n =
@@ -88,7 +88,7 @@ Sieve :> STREAM = {
   value (s : state) = let S = unwrap s : state in S.value S.start
 }
 
-nthstate = rec (nthstate : int -> Sieve.state) => fun n =>
+nthstate = rec (nthstate : int ~> Sieve.state) => fun n =>
   if n == 0 then Sieve.start else Sieve.next (nthstate (n -1))
 nthprime n = Sieve.value (nthstate n)
 
