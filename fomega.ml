@@ -106,70 +106,163 @@ let rename x =
 
 type 'a subst = (var * 'a) list
 
-let rec subst_row subst s = List.map (fun (l, z) -> l, subst s z)
+let rec subst_row subst s r =
+  match r with
+  | [] -> r
+  | (l, h)::t ->
+    let t' = subst_row subst s t in
+    let h' = subst s h in
+    if t == t' && h == h' then r else (l, h')::t'
 
-let rec subst_typ s = function
-  | VarT(a) -> (try List.assoc a s with Not_found -> VarT(a))
-  | PrimT(t) -> PrimT(t)
-  | ArrT(t1, t2) -> ArrT(subst_typ s t1, subst_typ s t2)
-  | ProdT(tr) -> ProdT(subst_row subst_typ s tr)
-  | AllT(a, k, t) ->
-    let a' = rename a in AllT(a', k, subst_typ ([a, VarT(a')]@s) t)
-  | AnyT(a, k, t) ->
-    let a' = rename a in AnyT(a', k, subst_typ ([a, VarT(a')]@s) t)
-  | LamT(a, k, t) ->
-    let a' = rename a in LamT(a', k, subst_typ ([a, VarT(a')]@s) t)
-  | AppT(t1, t2) -> AppT(subst_typ s t1, subst_typ s t2)
-  | TupT(tr) -> TupT(subst_row subst_typ s tr)
-  | DotT(t, l) -> DotT(subst_typ s t, l)
-  | RecT(a, k, t) ->
-    let a' = rename a in RecT(a', k, subst_typ ([a, VarT(a')]@s) t)
+let rec subst_typ s t =
+  match t with
+  | VarT(a) -> (try List.assoc a s with Not_found -> t)
+  | PrimT(_) -> t
+  | ArrT(t1, t2) ->
+    let t1' = subst_typ s t1 in
+    let t2' = subst_typ s t2 in
+    if t1 == t1' && t2 == t2' then t else ArrT(t1', t2')
+  | ProdT(tr) ->
+    let tr' = subst_row subst_typ s tr in
+    if tr == tr' then t else ProdT(tr')
+  | AllT(a, k, t1) ->
+    let a' = rename a in
+    let t1' = subst_typ ([a, VarT(a')]@s) t1 in
+    if t1 == t1' then t else AllT(a', k, t1')
+  | AnyT(a, k, t1) ->
+    let a' = rename a in
+    let t1' = subst_typ ([a, VarT(a')]@s) t1 in
+    if t1 == t1' then t else AnyT(a', k, t1')
+  | LamT(a, k, t1) ->
+    let a' = rename a in
+    let t1' = subst_typ ([a, VarT(a')]@s) t1 in
+    if t1 == t1' then t else LamT(a', k, t1')
+  | AppT(t1, t2) ->
+    let t1' = subst_typ s t1 in
+    let t2' = subst_typ s t2 in
+    if t1 == t1' && t2 == t2' then t else AppT(t1', t2')
+  | TupT(tr) ->
+    let tr' = subst_row subst_typ s tr in
+    if tr == tr' then t else TupT(tr')
+  | DotT(t1, l) ->
+    let t1' = subst_typ s t1 in
+    if t1 == t1' then t else DotT(t1', l)
+  | RecT(a, k, t1) ->
+    let a' = rename a in
+    let t1' = subst_typ ([a, VarT(a')]@s) t1 in
+    if t1 == t1' then t else RecT(a', k, t1')
   | InferT(t', id) ->
-    if Lazy.is_val t' then subst_typ s (Lazy.force t') else InferT(t', id)
+    if Lazy.is_val t' then subst_typ s (Lazy.force t') else t
 
-let rec subst_typ_exp s = function
-  | VarE(x) -> VarE(x)
-  | PrimE(c) -> PrimE(c)
+let rec subst_typ_exp s e =
+  match e with
+  | VarE(_) -> e
+  | PrimE(_) -> e
   | IfE(e1, e2, e3) ->
-    IfE(subst_typ_exp s e1, subst_typ_exp s e2, subst_typ_exp s e3)
-  | LamE(x, t, e) -> LamE(x, subst_typ s t, subst_typ_exp s e)
-  | AppE(e1, e2) -> AppE(subst_typ_exp s e1, subst_typ_exp s e2)
-  | TupE(er) -> TupE(subst_row subst_typ_exp s er)
-  | DotE(e, l) -> DotE(subst_typ_exp s e, l)
-  | GenE(a, k, e) ->
-    let a' = rename a in GenE(a', k, subst_typ_exp ([a, VarT(a')]@s) e)
-  | InstE(e, t) -> InstE(subst_typ_exp s e, subst_typ s t)
-  | PackE(t1, e, t) -> PackE(subst_typ s t1, subst_typ_exp s e, subst_typ s t)
+    let e1' = subst_typ_exp s e1 in
+    let e2' = subst_typ_exp s e2 in
+    let e3' = subst_typ_exp s e3 in
+    if e1 == e1' && e2 == e2' && e3 == e3' then e else IfE(e1', e2', e3')
+  | LamE(x, t, e1) ->
+    let t' = subst_typ s t in
+    let e1' = subst_typ_exp s e1 in
+    if t == t' && e1 == e1' then e else LamE(x, t', e1')
+  | AppE(e1, e2) ->
+    let e1' = subst_typ_exp s e1 in
+    let e2' = subst_typ_exp s e2 in
+    if e1 == e1' && e2 == e2' then e else AppE(e1', e2')
+  | TupE(er) ->
+    let er' = subst_row subst_typ_exp s er in
+    if er == er' then e else TupE(er')
+  | DotE(e1, l) ->
+    let e1' = subst_typ_exp s e1 in
+    if e1 == e1' then e else DotE(e1', l)
+  | GenE(a, k, e1) ->
+    let a' = rename a in
+    let e1' = subst_typ_exp ([a, VarT(a')]@s) e1 in
+    if e1 == e1' then e else GenE(a', k, e1')
+  | InstE(e1, t) ->
+    let e1' = subst_typ_exp s e1 in
+    let t' = subst_typ s t in
+    if e1 == e1' && t == t' then e else InstE(e1', t')
+  | PackE(t1, e1, t) ->
+    let t1' = subst_typ s t1 in
+    let e1' = subst_typ_exp s e1 in
+    let t' = subst_typ s t in
+    if t1 == t1' && e1 == e1' && t == t' then e else PackE(t1', e1', t')
   | OpenE(e1, a, x, e2) ->
     let a' = rename a in
-    OpenE(subst_typ_exp s e1, a', x, subst_typ_exp ([a, VarT(a')]@s) e2)
-  | RollE(e, t) -> RollE(subst_typ_exp s e, subst_typ s t)
-  | UnrollE(e) -> UnrollE(subst_typ_exp s e)
-  | RecE(x, t, e) -> RecE(x, subst_typ s t, subst_typ_exp s e)
-  | LetE(e1, x, e2) -> LetE(subst_typ_exp s e1, x, subst_typ_exp s e2)
+    let e1' = subst_typ_exp s e1 in
+    let e2' = subst_typ_exp ([a, VarT(a')]@s) e2 in
+    if e1 == e1' && e2 == e2' then e else OpenE(e1', a', x, e2')
+  | RollE(e1, t) ->
+    let e1' = subst_typ_exp s e1 in
+    let t' = subst_typ s t in
+    if e1 == e1' && t == t' then e else RollE(e1', t')
+  | UnrollE(e1) ->
+    let e1' = subst_typ_exp s e1 in
+    if e1 == e1' then e else UnrollE(e1')
+  | RecE(x, t, e1) ->
+    let t' = subst_typ s t in
+    let e1' = subst_typ_exp s e1 in
+    if t == t' && e1 == e1' then e else RecE(x, t', e1')
+  | LetE(e1, x, e2) ->
+    let e1' = subst_typ_exp s e1 in
+    let e2' = subst_typ_exp s e2 in
+    if e1 == e1' && e2 == e2' then e else LetE(e1', x, e2')
 
-let rec subst_exp s = function
-  | VarE(x) -> (try List.assoc x s with Not_found -> VarE(x))
-  | PrimE(c) -> PrimE(c)
-  | IfE(e1, e2, e3) -> IfE(subst_exp s e1, subst_exp s e2, subst_exp s e3)
-  | LamE(x, t, e) ->
-    let x' = rename x in LamE(x', t, subst_exp ([x, VarE(x')]@s) e)
-  | AppE(e1, e2) -> AppE(subst_exp s e1, subst_exp s e2)
-  | TupE(er) -> TupE(subst_row subst_exp s er)
-  | DotE(e, l) -> DotE(subst_exp s e, l)
-  | GenE(a, k, e) -> GenE(a, k, subst_exp s e)
-  | InstE(e, t) -> InstE(subst_exp s e, t)
-  | PackE(t1, e, t) -> PackE(t1, subst_exp s e, t)
+let rec subst_exp s e =
+  match e with
+  | VarE(x) -> (try List.assoc x s with Not_found -> e)
+  | PrimE(_) -> e
+  | IfE(e1, e2, e3) ->
+    let e1' = subst_exp s e1 in
+    let e2' = subst_exp s e2 in
+    let e3' = subst_exp s e3 in
+    if e1 == e1' && e2 == e2' && e3 == e3' then e else IfE(e1', e2', e3')
+  | LamE(x, t, e1) ->
+    let x' = rename x in
+    let e1' = subst_exp ([x, VarE(x')]@s) e1 in
+    if e1 == e1' then e else LamE(x', t, e1')
+  | AppE(e1, e2) ->
+    let e1' = subst_exp s e1 in
+    let e2' = subst_exp s e2 in
+    if e1 == e1' && e2 == e2' then e else AppE(e1', e2')
+  | TupE(er) ->
+    let er' = subst_row subst_exp s er in
+    if er == er' then e else TupE(er')
+  | DotE(e1, l) ->
+    let e1' = subst_exp s e1 in
+    if e1 == e1' then e else DotE(e1', l)
+  | GenE(a, k, e1) ->
+    let e1' = subst_exp s e1 in
+    if e1 == e1' then e else GenE(a, k, e1')
+  | InstE(e1, t) ->
+    let e1' = subst_exp s e1 in
+    if e1 == e1' then e else InstE(e1', t)
+  | PackE(t1, e1, t) ->
+    let e1' = subst_exp s e1 in
+    if e1 == e1' then e else PackE(t1, e1', t)
   | OpenE(e1, a, x, e2) ->
     let x' = rename x in
-    OpenE(subst_exp s e1, a, x', subst_exp ([x, VarE(x')]@s) e2)
-  | RollE(e, t) -> RollE(subst_exp s e, t)
-  | UnrollE(e) -> UnrollE(subst_exp s e)
-  | RecE(x, t, e) ->
-    let x' = rename x in RecE(x', t, subst_exp ([x, VarE(x')]@s) e)
+    let e1' = subst_exp s e1 in
+    let e2' = subst_exp ([x, VarE(x')]@s) e2 in
+    if e1 == e1' && e2 == e2' then e else OpenE(e1', a, x', e2')
+  | RollE(e1, t) ->
+    let e1' = subst_exp s e1 in
+    if e1 == e1' then e else RollE(e1', t)
+  | UnrollE(e1) ->
+    let e1' = subst_exp s e1 in
+    if e1 == e1' then e else UnrollE(e1')
+  | RecE(x, t, e1) ->
+    let x' = rename x in
+    let e1' = subst_exp ([x, VarE(x')]@s) e1 in
+    if e1 == e1' then e else RecE(x', t, e1')
   | LetE(e1, x, e2) ->
     let x' = rename x in
-    LetE(subst_exp s e1, x', subst_exp ([x, VarE(x')]@s) e2)
+    let e1' = subst_exp s e1 in
+    let e2' = subst_exp ([x, VarE(x')]@s) e2 in
+    if e1 == e1' && e2 == e2' then e else LetE(e1', x', e2')
 
 
 (* Normalisation *)
@@ -183,30 +276,52 @@ and varT' t = function
     TupT(List.map (fun (l, k) -> l, varT' (DotT(t, l)) k) kr)
 
 
-let norm_row norm = List.map (fun (l, z) -> l, norm z)
+let rec norm_row norm r =
+  match r with
+  | [] -> r
+  | (l, h)::t ->
+    let h' = norm h in
+    let t' = norm_row norm t in
+    if h == h' && t == t' then r else (l, h')::t'
 
-let rec norm_typ = function
-  | VarT(a) -> VarT(a)
-  | PrimT(t) -> PrimT(t)
-  | ArrT(t1, t2) -> ArrT(norm_typ t1, norm_typ t2)
-  | ProdT(tr) -> ProdT(norm_row norm_typ tr)
-  | AllT(a, k, t) -> AllT(a, k, norm_typ t)
-  | AnyT(a, k, t) -> AnyT(a, k, norm_typ t)
-  | LamT(a, k, t) -> LamT(a, k, t)
+let rec norm_typ t =
+  match t with
+  | VarT(_) -> t
+  | PrimT(_) -> t
+  | ArrT(t1, t2) ->
+    let t1' = norm_typ t1 in
+    let t2' = norm_typ t2 in
+    if t1 == t1' && t2 == t2' then t else ArrT(t1', t2')
+  | ProdT(tr) ->
+    let tr' = norm_row norm_typ tr in
+    if tr == tr' then t else ProdT(tr')
+  | AllT(a, k, t1) ->
+    let t1' = norm_typ t1 in
+    if t1 == t1' then t else AllT(a, k, t1')
+  | AnyT(a, k, t1) ->
+    let t1' = norm_typ t1 in
+    if t1 == t1' then t else AnyT(a, k, t1')
+  | LamT(_, _, _) -> t
   | AppT(t1, t2) ->
     (match norm_typ t1 with
     | LamT(a, k, t) -> norm_typ (subst_typ [a, t2] t)
-    | t1' -> AppT(t1', norm_typ t2)
+    | t1' ->
+      let t2' = norm_typ t2 in
+      if t1 == t1' && t2 == t2' then t else AppT(t1', t2')
     )
-  | TupT(tr) -> TupT(norm_row norm_typ tr)
-  | DotT(t, l) ->
-    (match norm_typ t with
+  | TupT(tr) ->
+    let tr' = norm_row norm_typ tr in
+    if tr == tr' then t else TupT(tr')
+  | DotT(t1, l) ->
+    (match norm_typ t1 with
     | TupT(tr) -> norm_typ (lookup_lab l tr)
-    | t' -> DotT(t', l)
+    | t1' -> if t1 == t1' then t else DotT(t1', l)
     )
-  | RecT(a, k, t) -> RecT(a, k, norm_typ t)
+  | RecT(a, k, t1) ->
+    let t1' = norm_typ t1 in
+    if t1 == t1' then t else RecT(a, k, t1')
   | InferT(t', id) ->
-    if Lazy.is_val t' then norm_typ (Lazy.force t') else InferT(t', id)
+    if Lazy.is_val t' then norm_typ (Lazy.force t') else t
 
 
 let rec consts_of_val = function
@@ -218,40 +333,47 @@ let val_of_consts = function
   | [c] -> PrimE(c)
   | cs -> TupE(tup_row (List.map (fun c -> PrimE(c)) cs))
 
-let rec norm_exp = function
-  | VarE(x) -> VarE(x)
-  | PrimE(c) -> PrimE(c)
+let rec norm_exp e =
+  match e with
+  | VarE(_) -> e
+  | PrimE(_) -> e
   | IfE(e1, e2, e3) ->
     (match norm_exp e1 with
     | PrimE(Prim.BoolV(b)) -> norm_exp (if b then e2 else e3)
     | _ -> raise (Error "IfE")
     )
-  | LamE(x, t, e) -> LamE(x, t, e)
+  | LamE(_, _, _) -> e
   | AppE(e1, e2) ->
     (match norm_exp e1, norm_exp e2 with
     | LamE(x, t, e), v2 -> norm_exp (subst_exp [x, v2] e)
     | PrimE(Prim.FunV f), v2 -> val_of_consts (f.Prim.fn (consts_of_val v2))
     | _ -> raise (Error "AppE")
     )
-  | TupE(er) -> TupE(norm_row norm_exp er)
+  | TupE(er) ->
+    let er' = norm_row norm_exp er in
+    if er == er' then e else TupE(er')
   | DotE(e, l) ->
     (match norm_exp e with
     | TupE(vr) -> lookup_lab l vr
     | _ -> raise (Error "DotE")
     )
-  | GenE(a, k, e) -> GenE(a, k, e)
+  | GenE(_, _, _) -> e
   | InstE(e1, t) ->
     (match norm_exp e1 with
     | GenE(a, k, e) -> norm_exp (subst_typ_exp [a, t] e)
     | _ -> raise (Error "InstE")
     )
-  | PackE(t, e, t') -> PackE(t, norm_exp e, t')
+  | PackE(t, e1, t') ->
+    let e1' = norm_exp e1 in
+    if e1 == e1' then e else PackE(t, e1', t')
   | OpenE(e1, a, x, e2) ->
     (match norm_exp e1 with
     | PackE(t, v, t') -> norm_exp (subst_exp [x, v] (subst_typ_exp [a, t] e2))
     | _ -> raise (Error "OpenE")
     )
-  | RollE(e, t) -> RollE(norm_exp e, t)
+  | RollE(e1, t) ->
+    let e1' = norm_exp e1 in
+    if e1 == e1' then e else RollE(e1', t)
   | UnrollE(e) ->
     (match norm_exp e with
     | RollE(v, t) -> v
