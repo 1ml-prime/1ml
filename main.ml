@@ -11,6 +11,7 @@ let ast_flag = ref false
 let result_flag = ref false
 let no_run_flag = ref false
 let run_f_flag = ref false
+let no_sig_flag = ref false
 
 let trace_phase name = if !trace_flag then print_endline ("-- " ^ name)
 
@@ -64,20 +65,21 @@ let state = ref Lambda.Env.empty
 let f_state = ref []
 
 let print_sig s =
-  match s with
-  | Types.ExT(aks, Types.StrT(tr)) ->
-    List.iter (fun (a, k) ->
-      Format.open_box 0;
-      Format.print_string ("? " ^ a ^ " : ");
-      Types.print_kind k;
-      Format.print_break 1 0;
-      Format.close_box ()
-    ) aks;
-    Types.print_row tr;
-    print_endline ""
-  | _ ->
-    Types.print_extyp s;
-    print_endline ""
+  if not !no_sig_flag then
+    match s with
+    | Types.ExT(aks, Types.StrT(tr)) ->
+      List.iter (fun (a, k) ->
+        Format.open_box 0;
+        Format.print_string ("? " ^ a ^ " : ");
+        Types.print_kind k;
+        Format.print_break 1 0;
+        Format.close_box ()
+      ) aks;
+      Types.print_row tr;
+      print_endline ""
+    | _ ->
+      Types.print_extyp s;
+      print_endline ""
 
 let rec unpack = function
   | Fomega.PackE(_, v, _) -> unpack v
@@ -218,6 +220,7 @@ let argspec = Arg.align
   "-c", Arg.Set Elab.verify_flag, " check target program";
   "-d", Arg.Set no_run_flag, " dry, do not run program";
   "-f", Arg.Set run_f_flag, " run program as System F reduction";
+  "-no-sig", Arg.Set no_sig_flag, " do not print signature";
   "-p", Arg.Set ast_flag, " show parse tree";
   "-r", Arg.Set result_flag, " show resulting term";
   "-t", Arg.Set trace_flag, " trace compiler phases";
