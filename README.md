@@ -400,3 +400,7 @@ Opt :> OPT = {
 
 Note how values of type `wrap T` have to be wrapped and unwrapped explicitly,
 with a type annotation.
+
+---
+
+<p align="center"><img width="25%" src="logo.svg"></p>
