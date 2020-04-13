@@ -371,12 +371,8 @@ annexp :
 inexp :
   | annexp
     { $1 }
-  | FUN param paramlist DARROW exp
-    { funE($2::$3, $5)@@at() }
   | IF exp THEN exp ELSE infexp optannot
     { ifE($2, $4, $6, match $7 with None -> HoleT@@ati 1 | Some t -> t)@@at() }
-  | REC atpat DARROW exp
-    { recE(defaultP $2, $4)@@at() }
 ;
 exp :
   | LET bind IN exp
@@ -385,6 +381,10 @@ exp :
     { seqE($1, $3)@@at() }
   | inexp
     { $1 }
+  | FUN param paramlist DARROW exp
+    { funE($2::$3, $5)@@at() }
+  | REC atpat DARROW exp
+    { recE(defaultP $2, $4)@@at() }
 ;
 
 explist :
