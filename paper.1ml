@@ -97,7 +97,7 @@ type COLL c = {
   lookup : c -> key ~> opt val
   keys : c ~> list key
 }
-entries (c : type) (C : COLL c) (xs : c) : list (type (C.key, C.val)) =
+entries (c : type) (C : COLL c) (xs : c) : list (C.key, C.val) =
   List.map (C.keys xs) (fun (k : C.key) => (k, caseopt (C.lookup xs k) bot id))
 
 type MONAD (m : type -> type) = {
