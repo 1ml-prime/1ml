@@ -82,7 +82,7 @@ type COLL c = {
   keys : c ~> list key
 }
 
-entries 'c (C : COLL c) xs : list (type (C.key, C.val)) =
+entries 'c (C : COLL c) xs : list (C.key, C.val) =
   List.map (C.keys xs) (fun k => caseopt (C.lookup xs k) bot (fun v => (k, v)))
 
 

@@ -208,13 +208,13 @@ Hungry = {
 
 PolyRec = {
   type l a = rec (type t) => a | t
-  ...rec {type t a} => {type t a = a | t (type (a, a))}
+  ...rec {type t a} => {type t a = a | t (a, a)}
 
   t_int = t int
 
   hmm (x: t int) = flip Alt.case (x.@(t int))
 
-  t0 = @(t int) (inr (@(t (type (int, int))) (inl (0, 0))))
+  t0 = @(t int) (inr (@(t (int, int)) (inl (0, 0))))
 }
 
 N :> {
