@@ -278,8 +278,10 @@ atpathexp :
 apppathexp :
   | dotpathexp
     { $1 }
-  | apppathexp dotexp
+  | apppathexp dotpathexp
     { appE($1, $2)@@at() }
+  | apppathexp attyp
+    { appE($1, TypE($2)@@ati 2)@@at() }
   | AT attyp atexp
     { rollE($3, $2)@@at() }
   | AT name atexp
