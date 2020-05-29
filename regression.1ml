@@ -26,12 +26,12 @@ Equivalence: {
   wr (eq: T _ _) = wrap eq: t _ _
   un eq = unwrap eq: t _ _
   transitivity 'a 'b 'c (ab: t a b) (bc: t b c) =
-    wr (fun (type p _) => un bc p << un ab p)
-  reflexivity = wr (fun (type p _) => id)
+    wr fun (type p _) => un bc p << un ab p
+  reflexivity = wr fun (type p _) => id
   to eq a = un eq (fun (type x) => x) a
   from 'a 'b (eq: t a b) b = un eq (fun (type b) => type b ~> a) id b
   symmetry 'a 'b (eq: t a b) : t b a =
-    wr (fun (type p _) => un eq (fun (type b) => type p b ~> p a) id)
+    wr fun (type p _) => un eq (fun (type b) => type p b ~> p a) id
 }
 
 ;;
@@ -80,6 +80,14 @@ seq_exps x : (_, _) =
     x + y,
     Int.print 10; 1
   )
+
+Control = {
+  ifElse cond onT onF = if cond then onT () else onF ()
+
+  do ifElse true
+       fun {} => 101
+       fun {} => 42
+}
 
 ;;
 
@@ -199,7 +207,7 @@ type (a `>>` b) c = c
 Hungry = {
   type eat a = rec eat_a => a ~> eat_a
 
-  eater 'a: eat a = rec (eater: eat a) => @(eat a) (fun a => eater)
+  eater 'a: eat a = rec (eater: eat a) => @(eat a) fun a => eater
 
   eater <+ x = eater.@(eat _) x
 
@@ -238,8 +246,8 @@ in {
     (unwrap e.@(t _ _): wrap T x n t) p cs
 
   let mk 'x 'n (c: T x n t) = @(t x n) (wrap c: wrap T x n t) in {
-    nil  'x                     = mk (fun (type p _) (r: I x p t) => r.nil)
-    'x (v: x) :: 'n (vs: t x n) = mk (fun (type p _) (r: I x p t) => r.:: v vs)
+    nil  'x                     = mk fun (type p _) (r: I x p t) => r.nil
+    'x (v: x) :: 'n (vs: t x n) = mk fun (type p _) (r: I x p t) => r.:: v vs
   }
 } :> {
   type t _ _
