@@ -171,21 +171,29 @@ module Offside = struct
     | _ -> nest token >>= fun () -> get >>= inside_parens
 
   and nest token =
-    emit token >>= fun () ->
     match token with
-    | LBRACE ->
-      get >>= fun (token, column) ->
-      inside_braces RBRACE false column (token, column)
-    | LPAR ->
-      get >>= inside_parens
-    | LET ->
-      get >>= fun (token, column) -> inside_let false column (token, column)
-    | LOCAL ->
-      get >>= fun (token, column) -> inside_local false column (token, column)
-    | EQUAL | DARROW | DO ->
-      get >>= fun (token, column) -> inside_in false column (token, column)
+    | FUN | REC ->
+      emit LPAR >>= fun () -> emit token
     | _ ->
-      unit
+      emit token >>= fun () ->
+      match token with
+      | LBRACE ->
+        get >>= fun (token, column) ->
+        inside_braces RBRACE false column (token, column)
+      | LPAR ->
+        get >>= inside_parens
+      | LET ->
+        get >>= fun (token, column) -> inside_let false column (token, column)
+      | LOCAL ->
+        get >>= fun (token, column) -> inside_local false column (token, column)
+      | DARROW ->
+        get >>= fun (token, column) ->
+        inside_in false column (token, column) >>= fun () ->
+        emit RPAR
+      | EQUAL | DO ->
+        get >>= fun (token, column) -> inside_in false column (token, column)
+      | _ ->
+        unit
 
   type state = (unit monad * (Parser.token * int) option) ref
 
