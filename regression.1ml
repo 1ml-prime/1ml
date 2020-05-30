@@ -89,6 +89,25 @@ Control = {
        fun {} => 42
 }
 
+Monadic = {
+  type MONAD = {
+    type t _
+    of 'x: x ~> t x
+    chain 'x 'y: (x ~> t y) -> t x ~> t y
+  }
+
+  Ops (M: MONAD) = {
+    ...M
+    xM >>= xyM = chain xyM xM
+    xM >> yM = xM |> chain fun {} => yM
+  }
+
+  monadic (M: MONAD) = let ...Ops M
+    of 101 >>= fun x =>
+    of {} >>
+    of x
+}
+
 ;;
 
 hole_is_allowed_type_pattern (type _ _) = ()

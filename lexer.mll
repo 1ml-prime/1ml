@@ -94,6 +94,11 @@ module Offside = struct
   let emit token = Monad (fun _ _ tco -> (Emit (token, unit), tco))
   let emit_if bool token = if bool then emit token else unit
 
+  let slack_of token =
+    match token with
+    | SYM text -> String.length text + 1
+    | _ -> 0
+
   let rec inside_braces break insert indent (token, column) =
     match token with
     | EOF | RBRACE -> if token = break then emit token else error "unexpected"
@@ -160,10 +165,11 @@ module Offside = struct
         emit token >>= fun () ->
         get >>= inside_in true indent
     | _ ->
-      if column < indent then unget (token, column) else
-        emit_if (column = indent && insert) SEMI >>= fun () ->
+      let slack = slack_of token in
+      if column < indent - slack then unget (token, column) else
+        emit_if (slack = 0 && column = indent && insert) SEMI >>= fun () ->
         nest token >>= fun () ->
-        get >>= inside_in true indent
+        get >>= inside_in (slack = 0 && indent < column) indent
 
   and inside_parens (token, column) =
     match token with
