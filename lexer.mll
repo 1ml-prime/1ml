@@ -19,7 +19,7 @@ let convert_pos pos =
 
 let region lexbuf =
   let left = convert_pos (Lexing.lexeme_start_p lexbuf) in
-  let right = convert_pos (Lexing.lexeme_end_p lexbuf) in 
+  let right = convert_pos (Lexing.lexeme_end_p lexbuf) in
   {Source.left = left; Source.right = right}
 
 let error lexbuf m = raise (Source.Error (region lexbuf, m))
@@ -74,6 +74,8 @@ module Offside = struct
       | (Emit (token, xM), tco) -> (Emit (token, xM >>= xyM), tco)
       | (Return x, tco) -> let (Monad yM) = xyM x in yM get_token lexbuf tco)
 
+  let (>>) lhs rhs = lhs >>= fun () -> rhs
+
   let get =
     Monad (fun get_token lexbuf tco ->
       (Return (match tco with
@@ -104,12 +106,12 @@ module Offside = struct
     | EOF | RBRACE -> if token = break then emit token else error "unexpected"
     | COMMA ->
       if column < indent - 2 then error "offside" else
-        emit token >>= fun () ->
+        emit token >>
         get >>= inside_braces break false indent
     | _ ->
       if column < indent then error "offside" else
-        emit_if (column = indent && insert) COMMA >>= fun () ->
-        nest token >>= fun () ->
+        emit_if (column = indent && insert) COMMA >>
+        nest token >>
         get >>= inside_braces break (token <> LOCAL) indent
 
   and inside_local insert indent (token, column) =
@@ -118,34 +120,34 @@ module Offside = struct
       emit token
     | COMMA ->
       if column < indent - 2 then error "offside" else
-        emit token >>= fun () ->
+        emit token >>
         get >>= inside_local false indent
     | _ ->
       if column < indent then
-        unget (token, column) >>= fun () ->
+        unget (token, column) >>
         emit IN
       else
-        emit_if (column = indent && insert) COMMA >>= fun () ->
-        nest token >>= fun () ->
+        emit_if (column = indent && insert) COMMA >>
+        nest token >>
         get >>= inside_local (token <> LOCAL) indent
 
   and inside_let insert indent (token, column) =
     match token with
     | IN ->
-      emit token >>= fun () ->
+      emit token >>
       get >>= fun (token, column) ->
       inside_in false column (token, column)
     | COMMA ->
       if column < indent - 2 then error "offside" else
-        emit token >>= fun () ->
+        emit token >>
         get >>= inside_let false indent
     | _ ->
       if column < indent then
-        emit IN >>= fun () ->
+        emit IN >>
         inside_in false column (token, column)
       else
-        emit_if (column = indent && insert) COMMA >>= fun () ->
-        nest token >>= fun () ->
+        emit_if (column = indent && insert) COMMA >>
+        nest token >>
         get >>= inside_let (token <> LOCAL) indent
 
   and inside_in insert indent (token, column) =
@@ -153,35 +155,35 @@ module Offside = struct
     | RBRACE | COMMA | IN | EOF | RPAR -> unget (token, column)
     | SEMI ->
       if column < indent - 2 then error "offside" else
-        emit token >>= fun () ->
+        emit token >>
         get >>= inside_in false indent
     | LET when column = indent ->
-      emit_if (column = indent && insert) SEMI >>= fun () ->
-      emit token >>= fun () ->
+      emit_if (column = indent && insert) SEMI >>
+      emit token >>
       get >>= fun (token, column) ->
       inside_let false column (token, column)
     | THEN | ELSE ->
       if column < indent then error "offside" else
-        emit token >>= fun () ->
+        emit token >>
         get >>= inside_in true indent
     | _ ->
       let slack = slack_of token in
       if column < indent - slack then unget (token, column) else
-        emit_if (slack = 0 && column = indent && insert) SEMI >>= fun () ->
-        nest token >>= fun () ->
+        emit_if (slack = 0 && column = indent && insert) SEMI >>
+        nest token >>
         get >>= inside_in (slack = 0 && indent < column) indent
 
   and inside_parens (token, column) =
     match token with
     | RPAR -> emit token
-    | _ -> nest token >>= fun () -> get >>= inside_parens
+    | _ -> nest token >> get >>= inside_parens
 
   and nest token =
     match token with
     | FUN | REC ->
-      emit LPAR >>= fun () -> emit token
+      emit LPAR >> emit token
     | _ ->
-      emit token >>= fun () ->
+      emit token >>
       match token with
       | LBRACE ->
         get >>= fun (token, column) ->
@@ -194,7 +196,7 @@ module Offside = struct
         get >>= fun (token, column) -> inside_local false column (token, column)
       | DARROW ->
         get >>= fun (token, column) ->
-        inside_in false column (token, column) >>= fun () ->
+        inside_in false column (token, column) >>
         emit RPAR
       | EQUAL | DO ->
         get >>= fun (token, column) -> inside_in false column (token, column)
