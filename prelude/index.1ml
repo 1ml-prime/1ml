@@ -59,7 +59,7 @@ List = {
   ...rec {type t _} => {type t x = Opt.t (x, t x)}
   nil = @(t _) none
   hd :: tl = @(t _) (some (hd, tl))
-  case {nil, (::)} x = x.@(t _) |> Opt.case {
+  case {nil, (::)} (@(t _) x) = x |> Opt.case {
     none = nil
     some (hd, tl) = hd :: tl
   }

@@ -324,12 +324,7 @@ let rollP(p, t2) =
       patB(p, VarE("$"@@t2.at)@@t2.at)@@span[p.at; t2.at]
     )@@span[p.at; t2.at];
    infer = None;
-   annot =
-    match p.it.annot with
-    | None -> Some t2
-    | Some t1 ->
-      Some (AsT(t2, PathT(RecE("_"@@t1.at, TypT@@t1.at,
-        TypE(t1.it@@p.at)@@p.at)@@p.at)@@p.at)@@span[p.at; t2.at])}
+   annot = Some t2}
 
 
 (* String conversion *)
