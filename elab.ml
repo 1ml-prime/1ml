@@ -388,7 +388,7 @@ Trace.debug (lazy ("[FunE] env =" ^ VarSet.fold (fun a s -> s ^ " " ^ a) (domain
       | Pure, f -> f
       | _ -> error impl.at "impure function cannot be implicit" in
     ExT([], FunT(aks, t, s, p')), Pure,
-    lift_warn exp.at (FunT(aks, t, s, p')) env (zs1 @ zs2),
+    lift (* TODO: _warn exp.at (FunT(aks, t, s, p')) *) env (zs1 @ zs2),
     IL.genE(erase_bind aks, IL.LamE(var.it, erase_typ t, e2))
 
   | EL.WrapE(var, typ) ->
