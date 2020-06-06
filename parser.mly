@@ -26,17 +26,19 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %}
 
 %token HOLE PRIMITIVE
-%token FUN REC LET IN DO WRAP UNWRAP TYPE ELLIPSIS
+%token FUN REC LET IN DO WRAP TYPE ELLIPSIS
 %token IF THEN ELSE LOGICAL_OR LOGICAL_AND AS
 %token EQUAL COLON SEAL ARROW SARROW DARROW
 %token WITH
 %token LPAR RPAR
 %token LBRACE RBRACE
-%token DOT AT TICK
+%token DOT TICK
 %token COMMA SEMI
 %token TYPE_ERROR
 %token LOCAL
 %token IMPORT
+%token WRAP_OP UNWRAP_OP
+%token ROLL_OP UNROLL_OP
 
 %token EOF
 
@@ -262,10 +264,6 @@ dotpathexp :
     { $1 }
   | dotpathexp DOT label
     { DotE($1, $3)@@at() }
-  | dotpathexp DOT AT attyp
-    { unrollE($1, $4)@@at() }
-  | dotpathexp DOT AT name
-    { unrollE($1, PathT(VarE($4)@@ati 4)@@ati 4)@@at() }
 ;
 atpathexp :
   | name
@@ -280,10 +278,6 @@ apppathexp :
     { appE($1, $2)@@at() }
   | apppathexp attyp
     { appE($1, TypE($2)@@ati 2)@@at() }
-  | AT attyp atexp
-    { rollE($3, $2)@@at() }
-  | AT name atexp
-    { rollE($3, PathT(VarE($2)@@ati 2)@@ati 2)@@at() }
 ;
 infpathexp :
   | apppathexp
@@ -303,10 +297,6 @@ dotexp :
     { $1 }
   | dotexp DOT label
     { DotE($1, $3)@@at() }
-  | dotexp DOT AT attyp
-    { unrollE($1, $4)@@at() }
-  | dotexp DOT AT name
-    { unrollE($1, PathT(VarE($4)@@ati 4)@@ati 4)@@at() }
 ;
 atexp :
   | name
@@ -339,10 +329,6 @@ appexp :
     { $1 }
   | appexp dotexp
     { appE($1, $2)@@at() }
-  | AT attyp atexp
-    { rollE($3, $2)@@at() }
-  | AT name atexp
-    { rollE($3, PathT(VarE($2)@@ati 2)@@ati 2)@@at() }
 ;
 infexp :
   | appexp
@@ -356,17 +342,27 @@ infexp :
   | infexp LOGICAL_AND appexp
     { andE($1, $3)@@at() }
 ;
+annexp_op :
+  | COLON
+    { annotE }
+  | SEAL
+    { sealE }
+  | ROLL_OP
+    { rollE }
+  | UNROLL_OP
+    { unrollE }
+  | WRAP_OP
+    { wrapE }
+  | UNWRAP_OP
+    { unwrapE }
+;
 annexp :
-  | infexp optannot
-    { opt annotE($1, $2)@@at() }
+  | infexp
+    { $1 }
   | TYPE typ
     { TypE($2)@@at() }
-  | annexp SEAL typ
-    { sealE($1, $3)@@at() }
-  | WRAP infexp COLON typ
-    { wrapE($2, $4)@@at() }
-  | UNWRAP infexp COLON typ
-    { unwrapE($2, $4)@@at() }
+  | annexp annexp_op typ
+    { $2($1, $3)@@at() }
 ;
 inexp :
   | annexp
@@ -403,18 +399,42 @@ funbind :
     { ($3, $2 @ $4 @ $6) }
 ;
 
+bindann_op :
+  | COLON
+    { annotE }
+  | SEAL
+    { sealE }
+  | ROLL_OP
+    { rollE }
+  | UNROLL_OP
+    { unrollE }
+  | WRAP_OP
+    { wrapE }
+  | UNWRAP_OP
+    { unwrapE }
+;
+bindann :
+  | bindann_op typ
+    { fun e -> $1(e, $2)@@span[ati 2; e.at] }
+;
+bindanns :
+  | bindann
+    { $1 }
+  | bindanns bindann
+    { fun e -> $2 ($1 e) }
+;
+bindanns_opt :
+  |
+    { fun e -> e }
+  | bindanns
+    { $1 }
+;
+
 atbind :
-  | funbind optannot EQUAL exp
-    { let (head, params) = $1 in
-      VarB(head, funE(params,
-        opt annotE($4, $2)@@span[ati 2; ati 4])@@at())@@at() }
-  | funbind SEAL typ EQUAL exp
-    { let (head, params) = $1 in
-      VarB(head, funE(params, sealE($5, $3)@@span[ati 3; ati 5])@@at())@@at() }
-  | head SEAL typ EQUAL exp
-    { VarB($1, sealE($5, $3)@@span[ati 3; ati 5])@@at() }
-  | pat EQUAL exp
-    { patB($1, $3)@@at() }
+  | funbind bindanns_opt EQUAL exp
+    { let (head, params) = $1 in VarB(head, funE(params, $2($4))@@at())@@at() }
+  | atpat bindanns_opt EQUAL exp
+    { patB($1, $2($4))@@at() }
   | name
     { VarB($1, VarE($1.it@@at())@@at())@@at() }
   | typpat EQUAL typ
@@ -461,19 +481,19 @@ atpat :
       annotP(headP(head)@@head.at,
         funT(typparams, TypT@@at(), Pure@@at())@@at())@@at() }
 ;
-apppat :
-  | atpat
-    { $1 }
-  | AT attyp atpat
-    { rollP($3, $2)@@at() }
-  | AT name atpat
-    { rollP($3, PathT(VarE($2)@@ati 2)@@ati 2)@@at() }
+annpat_op :
+  | COLON
+    { annotP }
+  | ROLL_OP
+    { rollP }
+  | WRAP_OP
+    { wrapP }
 ;
 annpat :
-  | apppat optannot
-    { opt annotP($1, $2)@@at() }
-  | WRAP apppat COLON typ
-    { wrapP($2, $4)@@at() }
+  | atpat
+    { $1 }
+  | annpat annpat_op typ
+    { $2($1, $3)@@at() }
 ;
 pat :
   | annpat

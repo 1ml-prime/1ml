@@ -115,11 +115,11 @@ E ::=
     fun '(X : T) => E       (implicit function/functor/constructor)
     E E                     (application)
     if E then E else E : T  (conditional)
-    wrap E : T              (impredicative wrapping)
-    unwrap E : T            (unwrapping)
+    E :# T                  (impredicative wrapping)
+    E #: T                  (unwrapping)
     rec (X : T) => E        (recursion)
-    @T E                    (recursive type roll)
-    E.@T                    (recursive type unroll)
+    E :@ T                  (recursive type roll)
+    E @: T                  (recursive type unroll)
     import "path"           (static import of module from file at path)
 
 (bindings)
@@ -192,7 +192,7 @@ E ::= ...
     E1 || E2                        ~> if E1 then true else E2
     E1 && E2                        ~> if E1 then E2 else false
     E : T                           ~> (fun (X : T) => X) E
-    E :> T                          ~> unwrap (wrap E : T) : T
+    E :> T                          ~> E :# T #: T
     let B in E                      ~> {B , X = E}.X
     rec P => E                      ~> rec (X : TP) => let P = X in E  [2]
     E1 ; E2                         ~> let _ = E1 in E2
@@ -209,8 +209,8 @@ P ::=
     (P1, ..., Pn)                   ~> {_1 = P1, ..., _n = Pn}
     (type X A1 ... An)              ~> (X : A1 -> ... -> An -> type)
     (type (A1 SYM A2) A3 ... An)    ~> (type (SYM) A1 ... An)
-    wrap P : T                      ~> ...let $ = unwrap $ : T in {P = $}
-    @T P                            ~> ...let $ = $.@T in {P = $}
+    P :# T                          ~> ...let $ = $ #: T in {P = $}
+    P :@ T                          ~> ...let $ = $ @: T in {P = $}
     P : T                           ~> P = $ : T
     P1 as P2                        ~> P1, P2
 
@@ -344,11 +344,11 @@ There are no datatype definitions, recursive types have to be defined
 explicitly, and require explicit injection/projection.
 
 ```1ml
-type stream = rec t => {hd : int, tl : () ~> opt t}   ;; creates rec type
-single x = @stream{hd = x, tl = fun () => none}   ;; @(t) e rolls value into t
-@stream{hd = n} = single 5             ;; @(t) p pattern matches on rec value
+type stream = rec t => {hd : int, tl : () ~> opt t} ;; creates rec type
+single x :@ stream = {hd = x, tl = fun () => none}  ;; b :@ t rolls value into t
+({hd = n} :@ stream) = single 5        ;; p :@ t pattern matches on rec value
 do Int.print n                         ;; or:
-do Int.print (single 7).@stream.hd     ;; e.@(t) unrolls rec value directly
+do Int.print (single 7 @: stream).hd   ;; e @: t unrolls rec value directly
 ```
 
 #### Recursive Functions
@@ -360,15 +360,15 @@ count = rec self => fun i =>
   if i == 0 then () else self (i - 1)
 
 repeat = rec self => fun x =>
-  @stream{hd = x, tl = fun () => some (self x)}
+  {hd = x, tl = fun () => some (self x)} :@ stream
 ```
 
 Mutual recursion is also expressible:
 
 ```1ml
 {even, odd} = rec (self : {even : int ~> stream, odd : int ~> stream}) => {
-  even x = @stream{hd = x, tl = fun () => some (self.odd (x + 1))}
-  odd x = @stream{hd = x, tl = fun () => some (self.even (x + 1))}
+  even x :@ stream = {hd = x, tl = fun () => some (self.odd (x + 1))}
+  odd x :@ stream = {hd = x, tl = fun () => some (self.even (x + 1))}
 }
 ```
 
@@ -392,14 +392,13 @@ Opt :> OPT = {
   ;; Church encoding; it requires the abstract type opt a to be implemented
   ;; with a polymorphic (i.e., large) type. Thus, wrap the type.
   type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
-  none = wrap (fun (b : type) (n : b) (s : _ ~> b) => n) : opt _
-  some x = wrap (fun (b : type) (n : b) (s : _ ~> b) => s x) : opt _
-  caseopt xo = (unwrap xo : opt _) _
+  none :# opt _ = fun (b : type) (n : b) (s : _ ~> b) => n
+  some x :# opt _ = fun (b : type) (n : b) (s : _ ~> b) => s x
+  caseopt (xo :# opt _) = xo _
 }
 ```
 
-Note how values of type `wrap T` have to be wrapped and unwrapped explicitly,
-with a type annotation.
+Note how values of type `wrap T` have to be wrapped and unwrapped explicitly.
 
 ---
 

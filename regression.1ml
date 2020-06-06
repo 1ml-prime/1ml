@@ -23,8 +23,8 @@ Equivalence: {
 } = {
   type T a b = (type p _) ~> p a ~> p b
   type t a b = wrap T a b
-  wr (eq: T _ _) = wrap eq: t _ _
-  un (wrap eq: t _ _) = eq
+  wr (eq: T _ _) :# t _ _ = eq
+  un (eq :# t _ _) = eq
   transitivity 'a 'b 'c (ab: t a b) (bc: t b c) =
     wr fun (type p _) => un bc p << un ab p
   reflexivity = wr fun (type p _) => id
@@ -132,7 +132,7 @@ type_error {
 }
 
 Both = {
-  {x, y = _} as {x = _, y} = {x = 1, y = 2}
+  ({x, y = _} as {x = _, y}) = {x = 1, y = 2}
 }
 
 ;;
@@ -166,9 +166,7 @@ type_error rec (R: {}) => {
   kaboom () = R
 }
 
-Kaboom = rec (R: rec R => {kaboom: () ~> R}) => @(= R) {
-  kaboom () = R
-}
+Kaboom = rec (R: rec R => {kaboom: () ~> R}) => {kaboom () = R} :@ (= R)
 
 ;;
 
@@ -195,15 +193,15 @@ in {
   }) => {
     Even = {
       ...T.Even
-      make 'x (head: x) (tail: T.Odd.t x) : T.Even.t x =
-        @(T.Even.t x) {head, tail}
-      size 'x (v: T.Even.t x) = 1 + R.Odd.size v.@(T.Even.t _).tail
+      make 'x (head: x) (tail: T.Odd.t x) :@ T.Even.t x =
+        {head, tail}
+      size 'x (v :@ T.Even.t x) = 1 + R.Odd.size v.tail
     }
     Odd = {
       ...T.Odd
-      make 'x (v: opt (T.Even.t x)) : T.Odd.t x = @(T.Odd.t x) v
-      size 'x (v: T.Odd.t x) =
-        v.@(T.Odd.t x) |> Opt.case {
+      make 'x (v: opt (T.Even.t x)) :@ T.Odd.t x = v
+      size 'x (v :@ T.Odd.t x) =
+        v |> Opt.case {
           none = 0
           some e = R.Even.size e
         }
@@ -236,9 +234,9 @@ type (a `>>` b) c = c
 Hungry = {
   type eat a = rec eat_a => a ~> eat_a
 
-  eater 'a: eat a = rec (eater: eat a) => @(eat a) fun a => eater
+  eater 'a = rec (eater: eat a) => (fun a => eater) :@ eat a
 
-  eater <+ x = eater.@(eat _) x
+  (eater :@ eat _) <+ x = eater x
 
   do eater <+ 1 <+ 2
 }
@@ -249,9 +247,9 @@ PolyRec = {
 
   t_int = t int
 
-  hmm (x: t int) = flip Alt.case (x.@(t int))
+  hmm (x :@ t int) = flip Alt.case x
 
-  t0 = @(t int) (inr (@(t (int, int)) (inl (0, 0))))
+  t0 = inr (inl (0, 0) :@ t (int, int)) :@ t int
 }
 
 N :> {
@@ -271,10 +269,10 @@ ListN = let
 in {
   ...rec {type t _ _} => {type t x n = wrap T x n t}
 
-  case 'x 'n (type p _) (cs: I x p t) (@(t x n) (wrap e: wrap T x n t)) =
+  case 'x 'n (type p _) (cs: I x p t) (e :# wrap T x n t :@ t x n) =
     e p cs
 
-  let mk 'x 'n (c: T x n t) = @(t x n) (wrap c: wrap T x n t) in {
+  let mk 'x 'n (c: T x n t) = c :# wrap T x n t :@ t x n in {
     nil  'x                     = mk fun (type p _) (r: I x p t) => r.nil
     'x (v: x) :: 'n (vs: t x n) = mk fun (type p _) (r: I x p t) => r.:: v vs
   }

@@ -33,9 +33,9 @@ Alt :> {
   case 'a 'b 'o: {inl: a ~> o, inr: b ~> o} -> t a b ~> o
 } = {
   type t a b = wrap 'o -> {inl: a ~> o, inr: b ~> o} ~> o
-  inl x = wrap (fun c => c.inl x): t _ _
-  inr x = wrap (fun c => c.inr x): t _ _
-  case c (wrap x: t _ _) = x c
+  inl x :# t _ _ = fun c => c.inl x
+  inr x :# t _ _ = fun c => c.inr x
+  case c (x :# t _ _) = x c
 }
 
 Alt = {
@@ -69,9 +69,9 @@ Pair = {
 List = {
   local ...Opt, ...Fun
   ...rec {type t _} => {type t x = Opt.t (x, t x)}
-  nil = @(t _) none
-  hd :: tl = @(t _) (some (hd, tl))
-  case {nil, (::)} (@(t _) x) = x |> Opt.case {
+  nil :@ t _ = none
+  hd :: tl :@ t _ = some (hd, tl)
+  case {nil, (::)} (x :@ t _) = x |> Opt.case {
     none = nil
     some (hd, tl) = hd :: tl
   }
