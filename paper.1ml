@@ -87,7 +87,7 @@ f (id : (a : type) -> a ~> a) = {x = id int 5, y = id bool true}
 
 type SHAPE = {type t, area : t ~> int, v : t}
 volume (height : int) (s : SHAPE) = height * s.area s.v
-area ss = List.foldl ss 0 (fun a (wrap s : wrap SHAPE) => a + s.area s.v)
+area ss = List.foldl ss 0 (fun a (s :# wrap SHAPE) => a + s.area s.v)
 
 type COLL c = {
   type key
@@ -266,7 +266,7 @@ type OPT = {
 }
 Opt :> OPT = {
   type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
-  none 'a = wrap (fun (b : type) (n : b) (s : a ~> b) => n) : opt a
-  some 'a x = wrap (fun (b : type) (n : b) (s : a ~> b) => s x) : opt a
-  caseopt 'a 'b xo = (unwrap xo : opt a) b
+  none 'a :# opt a = fun (b : type) (n : b) (s : a ~> b) => n
+  some 'a x :# opt a = fun (b : type) (n : b) (s : a ~> b) => s x
+  caseopt 'a 'b (xo :# opt a) = xo b
 }
