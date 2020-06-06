@@ -105,19 +105,18 @@ typpat :
 
 implparam :
   | TICK LPAR head COLON TYPE RPAR
-    { let b, _ = headP($3) in (b, TypT@@ati 5, Impl@@ati 1)@@at() }
+    { (headB($3)@@ati 3, TypT@@ati 5, Impl@@ati 1)@@at() }
   | TICK LPAR TYPE head RPAR
-    { let b, _ = headP($4) in (b, TypT@@ati 3, Impl@@ati 1)@@at() }
+    { (headB($4)@@ati 4, TypT@@ati 3, Impl@@ati 1)@@at() }
   | TICK head
-    { let b, _ = headP($2) in (b, TypT@@ati 1, Impl@@ati 1)@@at() }
+    { (headB($2)@@ati 2, TypT@@ati 1, Impl@@ati 1)@@at() }
 ;
 annparam :
   | LPAR head COLON typ RPAR
-    { let b, _ = headP($2) in (b, $4, Expl@@ati 3)@@at() }
+    { (headB($2)@@ati 2, $4, Expl@@ati 3)@@at() }
   | LPAR typpat RPAR
     { let (head, typparams) = $2 in
-      let b, _ = headP(head) in
-      (b, funT(typparams, TypT@@at(), Pure@@ati 2)@@ati 2,
+      (headB(head)@@head.at, funT(typparams, TypT@@at(), Pure@@ati 2)@@ati 2,
         Expl@@ati 2)@@at() }
   | implparam
     { $1 }
@@ -199,8 +198,7 @@ typ :
   | annparam arrow typ
     { funT([$1], $3, $2)@@at() }
   | withtyp arrow typ
-    { let b, _ = headP("_"@@ati 1) in
-      funT([(b, $1, Expl@@ati 2)@@ati 1], $3, $2)@@at() }
+    { funT([(headB("_"@@ati 1)@@ati 1, $1, Expl@@ati 2)@@ati 1], $3, $2)@@at() }
   | WRAP typ
     { WrapT($2)@@at() }
   | REC atpat DARROW typ

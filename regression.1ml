@@ -117,12 +117,22 @@ typparams_allowed (id 'a: a -> a) ({alsoId 'x: x -> x}) =
 
 ;;
 
+do {{id} = {id x = x}, do id: _ -> _}
+
+type_error {
+  {} = "not a structure"
+}
+
 type_error {
   inconsistent_empty_and_annpat ({}: int) = ()
 }
 
 type_error {
   inconsistent_nested_annpats ((x: int): text) = ()
+}
+
+Both = {
+  {x, y = _} as {x = _, y} = {x = 1, y = 2}
 }
 
 ;;
