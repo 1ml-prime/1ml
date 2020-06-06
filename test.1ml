@@ -83,9 +83,9 @@ type OPT = {
 }
 Opt :> OPT = {
   type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
-  none = wrap (fun (b : type) (n : b) (s : _ ~> b) => n) : opt _
-  some x = wrap (fun (b : type) (n : b) (s : _ ~> b) => s x) : opt _
-  caseopt xo = (unwrap xo : opt _) _
+  none :# opt _ = fun (b : type) (n : b) (s : _ ~> b) => n
+  some x :# opt _ = fun (b : type) (n : b) (s : _ ~> b) => s x
+  caseopt (xo :# opt _) = xo _
 }
 ...Opt
 
@@ -99,9 +99,9 @@ type ALT = {
 }
 Alt :> ALT = {
   type alt a b = wrap (c : type) -> (a ~> c) -> (b ~> c) ~> c
-  left x = wrap (fun (c : type) (l : _ ~> c) (r : _ ~> c) => l x) : alt _ _
-  right x = wrap (fun (c : type) (l : _ ~> c) (r : _ ~> c) => r x) : alt _ _
-  casealt xy = (unwrap xy : alt _ _) _
+  left x :# alt _ _ = fun (c : type) (l : _ ~> c) (r : _ ~> c) => l x
+  right x :# alt _ _ = fun (c : type) (l : _ ~> c) (r : _ ~> c) => r x
+  casealt (xy :# alt _ _) = xy _
 }
 ...Alt
 
@@ -130,11 +130,11 @@ type LIST = {
 List :> LIST = {
   ...{
     type list a = wrap (b : type) -> b -> (a ~> b ~> b) ~> b
-    nil = wrap (fun (b : type) (n : b) (c : _ ~> b ~> b) => n) : list _
-    cons x xs =
-      wrap (fun (b : type) (n : b) (c : _ ~> b ~> b) =>
-        c x ((unwrap xs : list _) b n c)) : list _
-    foldr xs = (unwrap xs : list _) _
+    nil :# list _ = fun (b : type) (n : b) (c : _ ~> b ~> b) => n
+    cons x (xs :# list _) :# list _ =
+      fun (b : type) (n : b) (c : _ ~> b ~> b) =>
+        c x (xs b n c)
+    foldr (xs :# list _) = xs _
   } :> LIST_CORE
   isNil xs = foldr xs true (fun _ _ => false)
   head xs = foldr xs none (fun x _ => some x)
@@ -276,12 +276,11 @@ in {
 
 type int = primitive "int"
 type t = rec a => int
-v = @t 3
-n = v.@t
-@t m = v
+v = 3 :@ t
+n = v @: t
+(m :@ t) = v
 type u a = rec _ => a
-w = @(u int) 4
-@(u int) x = w
-type p a b = (a,b)
-@(u (p _ _))(@t x, y) = @(u (p _ _)) (@t 6, 7)
-@(u _)(@t x', y') = @(u _) (@t 6, 7)
+w = 4 :@ u int
+(x :@ u int) = w
+((x :@ t, y) :@ u (_, _)) = (6 :@ t, 7) :@ u (_, _)
+((x' :@ t, y') :@ u _) = (6 :@ t, 7) :@ u _

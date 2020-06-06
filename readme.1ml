@@ -1,0 +1,86 @@
+local import "prelude.1ml"
+
+
+
+do Int.print (3 + 5)
+
+
+
+type t = int              ;; t = type int
+type pair x y = (x, y)    ;; pair = fun (x : type) => fun (y : type) => (x, y)
+
+type MONAD (m : type -> type) = {
+  return 'a : a ~> m a
+  bind 'a 'b : m a -> (a ~> m b) ~> m b
+}
+
+type SIG = {
+  type t                       ;; t : type
+  type u a                     ;; u : (a : type) -> type
+  type v = int                 ;; v : (= type int)
+  type w a (c : type -> type) = (u a, c t)
+  ;; w : (a : type) -> (c : (_ : type) -> type) -> (= type {_1: u a, _2: c t})
+}
+
+
+
+pair x y = {fst = x, snd = y}
+p = pair 5 "foo"
+
+
+
+do {pair} : {pair 'a 'b : a -> b -> {fst : a, snd : b}}
+
+
+
+do {pair} : {pair : 'a -> 'b -> a -> b -> {fst : a, snd : b}}
+
+
+
+do {pair} : {pair : '(a : type) -> '(b : type) -> a -> b -> {fst : a, snd : b}}
+
+
+
+f (id 'a : a -> a) = (id 5, id "")
+p = f (fun x => x)
+
+
+
+type stream = rec t => {hd : int, tl : () ~> opt t} ;; creates rec type
+single x :@ stream = {hd = x, tl = fun () => none}  ;; b :@ t rolls value into t
+({hd = n} :@ stream) = single 5        ;; p :@ t pattern matches on rec value
+do Int.print n                         ;; or:
+do Int.print (single 7 @: stream).hd   ;; e @: t unrolls rec value directly
+
+
+
+
+count = rec self => fun i =>
+  if i == 0 then () else self (i - 1)
+
+repeat = rec self => fun x =>
+  {hd = x, tl = fun () => some (self x)} :@ stream
+
+
+
+{even, odd} = rec (self : {even : int ~> stream, odd : int ~> stream}) => {
+  even x :@ stream = {hd = x, tl = fun () => some (self.odd (x + 1))}
+  odd x :@ stream = {hd = x, tl = fun () => some (self.even (x + 1))}
+}
+
+
+
+type OPT = {
+  type opt a
+  none 'a : opt a
+  some 'a : a -> opt a
+  caseopt 'a 'b : opt a -> b -> (a ~> b) ~> b
+}
+Opt :> OPT = {
+  ;; Church encoding; it requires the abstract type opt a to be implemented
+  ;; with a polymorphic (i.e., large) type. Thus, wrap the type.
+  type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
+  none :# opt _ = fun (b : type) (n : b) (s : _ ~> b) => n
+  some x :# opt _ = fun (b : type) (n : b) (s : _ ~> b) => s x
+  caseopt (xo :# opt _) = xo _
+}
