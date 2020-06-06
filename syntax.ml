@@ -213,13 +213,14 @@ let sealE(e, t) =
 let dotopE(x) =
   FunE("x"@@x.at, HoleT@@x.at, DotE(VarE("x"@@x.at)@@x.at, x)@@x.at, Expl@@x.at)
 
+type pat = {bind: bind; infer: typ option; annot: typ option}
 
 let recT(p, t2) =
   let b, t1 = p.it in
   let e = TypE(t2)@@t2.at in
   let e' =
     match b.it with
-    | VarB(x, _) -> RecE(x, t1, e)
+    | VarB(x, {it = VarE({it = "$"})}) -> RecE(x, t1, e)
     | EmptyB -> RecE("_"@@b.at, t1, e)
     | _ -> RecE("$"@@b.at, t1, letE(b, e)@@span[b.at; e.at])
   in PathT(e'@@span[p.at; t2.at])
@@ -227,38 +228,26 @@ let recT(p, t2) =
 let recE(p, e) =
   let b, t = p.it in
   match b.it with
-  | VarB(x, _) -> RecE(x, t, e)
+  | VarB(x, {it = VarE({it = "$"})}) -> RecE(x, t, e)
   | EmptyB -> RecE("_"@@b.at, t, e)
   | _ -> RecE("$"@@b.at, t, letE(b, e)@@span[b.at; e.at])
 
 let patB(p, e) =
-  let b, topt = p.it in
   let e' =
-    match topt with
+    match p.it.annot with
     | None -> e
     | Some t -> annotE(e, t)@@span[e.at; t.at]
   in
-  match b.it with
-  | EmptyB -> doB(e')
-  | VarB(x, {it = VarE({it = "$"})}) -> VarB(x, e')
-  | _ -> letB(VarB("$"@@e.at, e')@@e.at, b.it@@p.at)
-
-let defaultP p =
-  match p.it with
-  | b, None -> (b, HoleT@@p.at)@@p.at
-  | b, Some t -> (b, t)@@p.at
-
-let defaultTP p =
-  match p.it with
-  | b, None -> (b, TypT@@p.at)@@p.at
-  | b, Some t -> (b, t)@@p.at
-
-let varP(x) = VarB(x, VarE("$"@@x.at)@@x.at)@@x.at, None
-
-let headP id =
-  if id.it = "_"
-  then EmptyB@@id.at, None
-  else varP(id)
+  let b =
+    match p.it.bind.it with
+    | EmptyB -> doB(e')
+    | VarB(x, {it = VarE({it = "$"})}) -> VarB(x, e')
+    | _ -> letB(VarB("$"@@e.at, e')@@e.at, p.it.bind)
+  in
+  match p.it.infer with
+  | None -> b
+  | Some t ->
+    letB(VarB("_"@@p.at, annotE(e, t)@@span[e.at; t.at])@@p.at, b@@p.at)
 
 let asTopt(to1, to2) =
   match to1, to2 with
@@ -266,37 +255,52 @@ let asTopt(to1, to2) =
   | None, some | some, None -> some
   | Some t1, Some t2 -> Some(AsT(t1, t2)@@span[t1.at; t2.at])
 
+let defaultP p =
+  (p.it.bind,
+   match asTopt(p.it.infer, p.it.annot) with
+   | None -> HoleT@@p.at
+   | Some t -> t)@@p.at
+
+let defaultTP p =
+  (p.it.bind,
+   match asTopt(p.it.infer, p.it.annot) with
+   | None -> TypT@@p.at
+   | Some t -> t)@@p.at
+
+let varB x = VarB(x, VarE("$"@@x.at)@@x.at)
+let varP x = {bind = varB(x)@@x.at; infer = None; annot = None}
+
+let headB id = if id.it = "_" then EmptyB else varB(id)
+let headP id = {bind = headB(id)@@id.at; infer = None; annot = None}
+
 let asP(p1, p2) =
-  let b1, to1 = p1.it in
-  let b2, to2 = p2.it in
-  seqB(b1.it@@p1.at, b2.it@@p2.at)@@span[p1.at; p2.at], asTopt(to1, to2)
+  {bind = seqB(p1.it.bind.it@@p1.at, p2.it.bind.it@@p2.at)@@span[p1.at; p2.at];
+   infer = asTopt(p1.it.infer, p2.it.infer);
+   annot = asTopt(p1.it.annot, p2.it.annot)}
 
 let annotP(p, t2) =
-  let b, to1 = p.it in
-  let t = match asTopt(to1, Some t2) with Some t -> t | None -> assert false in
-  let toE e = annotE(e, t)@@t2.at in
-  let b' =
-    match b.it with
-    | EmptyB -> doB(toE(VarE("$"@@b.at)@@b.at))
-    | VarB(x, e) -> VarB(x, toE e)
-    | _ ->
-      letB(VarB("$"@@b.at, toE(VarE("$"@@b.at)@@b.at))@@b.at, b.it@@p.at) in
-  b'@@span[p.at; t2.at], Some t
+  {p.it with
+    bind = p.it.bind.it@@span[p.at; t2.at];
+    annot = asTopt(p.it.annot, Some t2)}
 
 let wrapP(p, t2) =
-  let _, to1 = p.it in
-  letB(
-    VarB("$"@@t2.at, UnwrapE("$"@@t2.at, t2)@@t2.at)@@t2.at,
-    patB(p, VarE("$"@@t2.at)@@t2.at)@@span[p.at; t2.at]
-  )@@span[p.at; t2.at],
-  match to1 with
-  | None -> Some t2
-  | Some t1 -> Some (AsT(t2, WrapT(t1)@@t1.at)@@span[p.at; t2.at])
+  {bind =
+    letB(
+      VarB("$"@@t2.at, UnwrapE("$"@@t2.at, t2)@@t2.at)@@t2.at,
+      patB(p, VarE("$"@@t2.at)@@t2.at)@@span[p.at; t2.at]
+    )@@span[p.at; t2.at];
+   infer = None;
+   annot =
+    match p.it.annot with
+    | None -> Some t2
+    | Some t1 -> Some (AsT(t2, WrapT(t1)@@t1.at)@@span[p.at; t2.at])}
 
 let strP(xps, region) =
   match xps with
   | [] ->
-    EmptyB@@region, Some (strT(EmptyD@@region)@@region)
+    {bind = EmptyB@@region;
+     infer = Some (strT(EmptyD@@region)@@region);
+     annot = None}
   | xp::_ ->
     let b, d =
       List.fold_right (fun xp (b, d) ->
@@ -306,24 +310,26 @@ let strP(xps, region) =
           @@span[b.at; p.at],
         seqD(VarD(x, t.it@@p.at)@@xp.at, d)@@span[d.at; p.at]
       ) xps (EmptyB@@xp.at, EmptyD@@xp.at)
-    in b, Some (strT(d)@@d.at)
+    in {bind = b; infer = Some (strT(d)@@d.at); annot = None}
 
-let rec tupP(ps, region) = strP(tupP' 1 ps, region)
-and tupP' n = function
+let rec tupP' n = function
   | [] -> []
   | p::ps -> (((index n)@@p.at, p)@@p.at) :: tupP' (n + 1) ps
+let tupP(ps, region) = strP(tupP' 1 ps, region)
 
 let rollP(p, t2) =
-  let _, to1 = p.it in
-  letB(
-    VarB("$"@@t2.at, UnrollE("$"@@t2.at, t2)@@t2.at)@@t2.at,
-    patB(p, VarE("$"@@t2.at)@@t2.at)@@span[p.at; t2.at]
-  )@@span[p.at; t2.at],
-  match to1 with
-  | None -> Some t2
-  | Some t1 ->
-    Some (AsT(t2, PathT(RecE("_"@@t1.at, TypT@@t1.at,
-      TypE(t1.it@@p.at)@@p.at)@@p.at)@@p.at)@@span[p.at; t2.at])
+  {bind =
+    letB(
+      VarB("$"@@t2.at, UnrollE("$"@@t2.at, t2)@@t2.at)@@t2.at,
+      patB(p, VarE("$"@@t2.at)@@t2.at)@@span[p.at; t2.at]
+    )@@span[p.at; t2.at];
+   infer = None;
+   annot =
+    match p.it.annot with
+    | None -> Some t2
+    | Some t1 ->
+      Some (AsT(t2, PathT(RecE("_"@@t1.at, TypT@@t1.at,
+        TypE(t1.it@@p.at)@@p.at)@@p.at)@@p.at)@@span[p.at; t2.at])}
 
 
 (* String conversion *)
