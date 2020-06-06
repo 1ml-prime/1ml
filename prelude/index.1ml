@@ -73,41 +73,11 @@ list = List.t
 opt = Opt.t
 text = Text.t
 
-(%) = Int.%
-(*) = Int.*
-(+) = Int.+
-(++) = Text.++
-(-) = Int.-
-(/) = Int./
-(::) = List.::
-(<) = Int.<
-(<<) = Fun.<<
-(<=) = Int.<=
-(<>) = Int.<>
-(<|) = Fun.<|
-(==) = Int.==
-(>) = Int.>
-(>=) = Int.>=
-(>>) = Fun.>>
-(|>) = Fun.|>
-bot = Fun.bot
-const = Fun.const
-cross = Pair.cross
-curry = Fun.curry
-either = Alt.either
-false = Bool.false
-flip = Fun.flip
-fork = Pair.fork
-fst = Pair.fst
-id = Fun.id
-inl = Alt.inl
-inr = Alt.inr
-nil = List.nil
-none = Opt.none
-not = Bool.not
-plus = Alt.plus
-print = Text.print
-snd = Pair.snd
-some = Opt.some
-true = Bool.true
-uncurry = Fun.uncurry
+{either, inl, inr, plus} = Alt
+{false, not, true} = Bool
+{(<<), (<|), (>>), (|>), bot, const, curry, flip, id, uncurry} = Fun
+{(%), (*), (+), (-), (/), (<), (<=), (<>), (==), (>), (>=)} = Int
+{(::), nil} = List
+{none, some} = Opt
+{cross, fork, fst, snd} = Pair
+{(++), print} = Text
