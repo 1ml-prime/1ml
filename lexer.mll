@@ -253,12 +253,14 @@ rule token = parse
   | "rec" { REC }
   | "then" { THEN }
   | "type" { TYPE }
-  | "unwrap" { UNWRAP }
   | "with" { WITH }
-  | "@" { AT }
   | "=" { EQUAL }
   | ":" { COLON }
   | ":>" { SEAL }
+  | ":@" { ROLL_OP }
+  | "@:" { UNROLL_OP }
+  | ":#" { WRAP_OP }
+  | "#:" { UNWRAP_OP }
   | "->" { ARROW }
   | "~>" { SARROW }
   | "=>" { DARROW }
