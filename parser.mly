@@ -207,8 +207,8 @@ typ :
     { recT(defaultTP $2, $4)@@at() }
   | LET bind IN typ
     { letT($2, $4)@@at() }
-  | FUN typparam typparamlist DARROW typ
-    { PathT(funE($2::$3, typE($5)@@ati 5)@@at())@@at() }
+  | FUN typparam typparamlist bindanns_opt DARROW typ
+    { PathT(funE($2::$3, $4(typE($6)@@ati 6))@@at())@@at() }
 ;
 typlist :
   | typ
@@ -379,8 +379,8 @@ exp :
     { seqE($1, $3)@@at() }
   | inexp
     { $1 }
-  | FUN param paramlist DARROW exp
-    { funE($2::$3, $5)@@at() }
+  | FUN param paramlist bindanns_opt DARROW exp
+    { funE($2::$3, $4($6))@@at() }
   | REC atpat DARROW exp
     { recE(defaultP $2, $4)@@at() }
 ;
