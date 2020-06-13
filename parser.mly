@@ -192,7 +192,7 @@ withtyp :
   | withtyp WITH LPAR namelist typparamlist EQUAL exp RPAR
     { WithT($1, $4, funE($5, $7)@@span[ati 5; ati 7])@@at() }
   | withtyp WITH LPAR TYPE namelist typparamlist EQUAL typ RPAR
-    { WithT($1, $5, funE($6, TypE($8)@@ati 8)@@span[ati 6; ati 8])@@at() }
+    { WithT($1, $5, funE($6, typE($8)@@ati 8)@@span[ati 6; ati 8])@@at() }
 ;
 typ :
   | withtyp
@@ -207,6 +207,8 @@ typ :
     { recT(defaultTP $2, $4)@@at() }
   | LET bind IN typ
     { letT($2, $4)@@at() }
+  | FUN typparam typparamlist DARROW typ
+    { PathT(funE($2::$3, typE($5)@@ati 5)@@at())@@at() }
 ;
 typlist :
   | typ
@@ -226,7 +228,7 @@ opttypdef :
   |
     { TypT@@at() }
   | EQUAL typ
-    { EqT(TypE($2)@@ati 2)@@ati 2 }
+    { EqT(typE($2)@@ati 2)@@ati 2 }
 ;
 
 atdec :
@@ -269,7 +271,7 @@ atpathexp :
   | name
     { VarE($1)@@at() }
   | HOLE
-    { TypE(HoleT@@at())@@at() }
+    { typE(HoleT@@at())@@at() }
 ;
 apppathexp :
   | dotpathexp
@@ -277,7 +279,7 @@ apppathexp :
   | apppathexp dotpathexp
     { appE($1, $2)@@at() }
   | apppathexp attyp
-    { appE($1, TypE($2)@@ati 2)@@at() }
+    { appE($1, typE($2)@@ati 2)@@at() }
 ;
 infpathexp :
   | apppathexp
@@ -302,7 +304,7 @@ atexp :
   | name
     { VarE($1)@@at() }
   | HOLE
-    { TypE(HoleT@@at())@@at() }
+    { typE(HoleT@@at())@@at() }
   | PRIMITIVE TEXT
     { match Prim.fun_of_string $2 with
       | Some f -> PrimE(Prim.FunV f)@@at()
@@ -360,7 +362,7 @@ annexp :
   | infexp
     { $1 }
   | TYPE typ
-    { TypE($2)@@at() }
+    { typE($2)@@at() }
   | annexp annexp_op typ
     { $2($1, $3)@@at() }
 ;
@@ -438,7 +440,7 @@ atbind :
   | name
     { VarB($1, VarE($1.it@@at())@@at())@@at() }
   | typpat EQUAL typ
-    { VarB(fst $1, funE(snd $1, TypE($3)@@ati 3)@@at())@@at() }
+    { VarB(fst $1, funE(snd $1, typE($3)@@ati 3)@@at())@@at() }
   | ELLIPSIS exp
     { InclB($2)@@at() }
   | DO exp

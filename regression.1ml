@@ -28,10 +28,10 @@ Equivalence: {
   transitivity 'a 'b 'c (ab: t a b) (bc: t b c) =
     wr fun (type p _) => un bc p << un ab p
   reflexivity = wr fun (type p _) => id
-  to eq a = un eq (fun (type x) => x) a
-  from 'a 'b (eq: t a b) b = un eq (fun (type b) => type b ~> a) id b
+  to eq a = un eq (type fun x => x) a
+  from 'a 'b (eq: t a b) b = un eq (type fun b => b ~> a) id b
   symmetry 'a 'b (eq: t a b) : t b a =
-    wr fun (type p _) => un eq (fun (type b) => type p b ~> p a) id
+    wr fun (type p _) => un eq (type fun b => p b ~> p a) id
 }
 
 ;;
