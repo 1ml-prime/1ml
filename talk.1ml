@@ -101,22 +101,22 @@ do map : 'a -> 'b -> (m: type -> type) -> (M: MONAD m) -> (a ~> b) ~> m a ~> m b
 
 ;; Objects
 
-type point' self = {
-  getX : () ~> int
-  getY : () ~> int
-  move : int ~> int ~> self
+...rec {type point} => {
+  type point = {
+    getX : () ~> int
+    getY : () ~> int
+    move : int ~> int ~> point
+  }
 }
-type recpoint = rec (x : type) => point' x
-type point = point' recpoint
 
-newpoint = rec (newpoint : int -> int -> point) => fun x y => {
+newpoint = rec (newpoint : int -> int -> point) => fun x y :@ point => {
   getX () = x
   getY () = y
-  move dx dy :@ recpoint = newpoint (x + dx) (y + dy)
+  move dx dy = newpoint (x + dx) (y + dy)
 }
 
 p = newpoint 3 4
-p' @: recpoint = p.move 1 2
+p' @: point = (p @: point).move 1 2
 do Int.print (p'.getX ())
 do print " "
 do Int.print (p'.getY ())
