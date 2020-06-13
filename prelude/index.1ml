@@ -40,7 +40,7 @@ Alt = {
 }
 
 Opt = {
-  type t x = Alt.t {} x
+  type t = Alt.t {}
   none = Alt.inl {}
   some = Alt.inr
   case {none, some} = Alt.case {inl {} = none, inr = some}
