@@ -238,6 +238,8 @@ Alt = {
 }
 (|) = Alt.|
 
+type AnAlt = {x: int} | {y: bool}
+
 infix_type_pat 'a 'b (type _ | _) (x: a | b) = x
 infix_type_dec 'a 'b ({type _ | _}) (x: a | b) = x
 

@@ -180,15 +180,9 @@ attyp :
   | LPAR EQUAL exp RPAR
     { EqT($3)@@at() }
 ;
-apptyp :
-  | attyp
-    { $1 }
-  | pathexp
-    { PathT($1)@@at() }
-;
 withtyp :
-  | apptyp
-    { $1 }
+  | infpathexp
+    { pathT($1)@@at() }
   | withtyp WITH LPAR namelist typparamlist EQUAL exp RPAR
     { WithT($1, $4, funE($5, $7)@@span[ati 5; ati 7])@@at() }
   | withtyp WITH LPAR TYPE namelist typparamlist EQUAL typ RPAR
@@ -282,16 +276,18 @@ apppathexp :
     { appE($1, typE($2)@@ati 2)@@at() }
 ;
 infpathexp :
-  | apppathexp
+  | apppathexp_or_typ
     { $1 }
-  | sym apppathexp
+  | sym apppathexp_or_typ
     { appE(VarE($1)@@ati(1), $2)@@at() }
-  | infpathexp sym apppathexp
+  | infpathexp sym apppathexp_or_typ
     { appE(appE(VarE($2)@@ati(2), $1)@@at(), $3)@@at() }
 ;
-pathexp :
-  | infpathexp
+apppathexp_or_typ :
+  | apppathexp
     { $1 }
+  | attyp
+    { typE($1)@@at() }
 ;
 
 dotexp :
