@@ -1,0 +1,75 @@
+local import "prelude"
+
+;; 1ML basically gives you simply typed lambda calculus (STLC) at the type
+;; level, which is unsurprising as 1ML is just as powerful as Fω.  You can even
+;; use lambda and let -expressions at the type level (note the `fst` and `snd`
+;; definitions below).  So, you can encode various kinds of stuff at the type
+;; level.  Of course, STLC is quite restrictive.
+
+TypeLevel = {
+  Pair = {
+    type t = (type _ _ _) -> type
+
+    type fst (p: t) = p fun fst _ => fst
+    type snd (p: t) = p fun _ snd => snd
+
+    type of fst snd (type d _ _) = d fst snd
+
+    type cross (type f _) (type s _) (p: t) (type d _ _) =
+      of (f (fst p)) (s (snd p)) d
+
+    type map (type f _) (p: t) (type d _ _) = cross f f p d
+  }
+
+  Bool = {
+    type t = type -> type -> type
+
+    type true  true     _ = true
+    type false    _ false = false
+
+    type not (x: t) true false = x false true
+
+    type andAlso (l: t) (r: t) false true = l (r true false) false
+    type  orElse (l: t) (r: t) false true = l true (r true false)
+
+    type equals (l: t) (r: t) true false = l (r true false) (r false true)
+  }
+
+  Alt = {
+    type t = (type -> type) -> (type -> type) -> type
+
+    type inL v (type inL _) (type _   _) = inL v
+    type inR v (type _   _) (type inR _) = inR v
+
+    type isL (a: t) true false = a (fun _ => true) (fun _ => false)
+    type isR (a: t) true false = a (fun _ => false) (fun _ => true)
+
+    type case (a: t) (type inL _) (type inR _) = a inL inR
+  }
+
+  Nat = {
+    type t = (type -> type) -> type -> type
+
+    type isZero (n: t) true false = n (fun _ => false) true
+
+    type  zero (type _    _) zero = zero
+    type   one (type succ _) zero = succ zero
+
+    type  succ        (n: t) (type succ _) zero = succ (n succ zero)
+    type  plus (m: t) (n: t) (type succ _) zero = n succ (m succ zero)
+    type times (m: t) (n: t) (type succ _) zero = n (m succ) zero
+  }
+
+  List = {
+    type t = type -> (type -> type -> type) -> type
+
+    type nil            nil (type _ :: _) = nil
+    type (x :: (xs: t)) nil (type _ :: _) = x :: xs nil (::)
+
+    type map (type fn _) (xs: t) nil (type _ :: _) = xs nil fun x => (::) (fn x)
+
+    type isNil (xs: t) true false = xs true fun _ _ => false
+
+    type head (xs: t) = xs zero fun h _ => h
+  }
+}

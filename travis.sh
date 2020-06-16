@@ -31,6 +31,6 @@ fi
 
 folded "Build 1ML" make
 
-for f in *.1ml; do
+for f in *.1ml examples/*.1ml; do
   folded "$f" ./1ml -c "$f"
 done
