@@ -1,0 +1,54 @@
+local import "prelude"
+
+;; 1ML is basically Fω plus recursive types, which gives enough power to encode
+;; GADTs.  This HOAS example is adapted from:
+;;
+;;   https://github.com/palladin/idris-snippets/blob/master/src/HOAS.idr
+
+let
+  type I (type case _) (type t _) = {
+    Val 'x       :                           x ~> case x
+    Bin 'x 'y 'z : (x ~> y ~> z) ~> t x ~> t y ~> case z
+    If  'x       :      t Bool.t ~> t x ~> t x ~> case x
+    App 'x 'y    :           t (x ~> y) ~> t x ~> case y
+    Lam 'x 'y    :                (t x ~> t y) ~> case (x ~> y)
+    Fix 'x 'y    :      t ((x ~> y) ~> x ~> y) ~> case (x ~> y)
+  }
+  type J (type t _) = {type case _, ...I case t}
+  type T (type t _) x = (c: J t) ~> c.case x
+  ...{
+    ...rec {type t _} => {type t x = wrap T t x}
+    case 'x (type case _) (cs: I case t) (e :# wrap T t x :@ t _) =
+      e {case, ...cs}
+    mk 'x (fn: T t x) = fn :# wrap T t x :@ t _
+  } :> {
+    type t _
+    case 'x: (type case _) -> I case t -> t x ~> case x
+    mk 'x: T t x -> t x
+  }
+  J = J t
+in {
+  t, case
+  Val 'x                                   (v: x) = mk fun (e: J) => e.Val v
+  Bin 'x 'y 'z (f: x ~> y ~> z) (l: t x) (r: t y) = mk fun (e: J) => e.Bin f l r
+  If  'x          (b: t Bool.t) (c: t x) (a: t x) = mk fun (e: J) => e.If b c a
+  App 'x 'y              (f: t (x ~> y)) (a: t x) = mk fun (e: J) => e.App f a
+  Lam 'x 'y                       (f: t x ~> t y) = mk fun (e: J) => e.Lam f
+  Fix 'x 'y           (f: t ((x ~> y) ~> x ~> y)) = mk fun (e: J) => e.Fix f
+}
+
+Fact = Fix <| Lam fun f => Lam fun x =>
+  If (Bin (==) x (Val 0))
+     (Val 1)
+     (Bin (*) x (App f (Bin (-) x (Val 1))))
+
+eval = rec (eval 'x: t x ~> x) => case (type fun t => t) {
+  Bin f x y = f (eval x) (eval y)
+  If b c a = eval if eval b then c else a
+  App f x = eval f (eval x)
+  Lam f x = eval (f (Val x))
+  Fix f = let f = eval f in rec f' => fun x => f f' x
+  Val x = x
+}
+
+do App Fact (Val 5) |> eval |> Int.toText |> print
