@@ -114,6 +114,11 @@ let typE(t) =
   | PathT(e) -> e.it
   | _ -> TypE(t)
 
+let pathT(e) =
+  match e.it with
+  | TypE(t) -> t.it
+  | _ -> PathT(e)
+
 (* Sugar *)
 
 let letE(b, e) =
