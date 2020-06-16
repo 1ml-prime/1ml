@@ -100,6 +100,10 @@ Text: {
   print: t ~> {}
 }
 
+Zero: {
+  type t
+}
+
 type alt a b = Alt.t a b
 type bool = Bool.t
 type char = Char.t
@@ -107,6 +111,7 @@ type int = Int.t
 type list a = List.t a
 type opt a = Opt.t a
 type text = Text.t
+type zero = Zero.t
 
 (%): int -> int -> int
 (*): int -> int -> int
