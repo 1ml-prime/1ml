@@ -65,6 +65,8 @@ List = {
   }
 }
 
+Zero :> {type t} = {type t = {}}
+
 alt = Alt.t
 bool = Bool.t
 char = Char.t
@@ -72,6 +74,7 @@ int = Int.t
 list = List.t
 opt = Opt.t
 text = Text.t
+zero = Zero.t
 
 {either, inl, inr, plus} = Alt
 {false, not, true} = Bool
