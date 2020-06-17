@@ -145,6 +145,8 @@ let funs =
     def "Text.fromChar" CharD PureE TextD (String.make 1);
 
     def "Text.print" TextD ImpureE VoidD (fun t -> print_string t; flush_all ());
+
+    def "System.exit" IntD ImpureE VarD exit;
   ]
 
 let fun_of_string name =
