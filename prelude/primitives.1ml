@@ -21,6 +21,10 @@ Char = {
   ...PolyEq t
 }
 
+System = {
+  exit 'a = primitive "System.exit" a
+}
+
 Int = {
   type t = primitive "int"
   (+) = pbo primitive "Int.+"
