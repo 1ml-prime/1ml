@@ -85,6 +85,10 @@ Pair: {
   fork 'a 'b 'c: (a ~> b) -> (a ~> c) -> a ~> (b, c)
 }
 
+System: {
+  exit 'a: int ~> a
+}
+
 Text: {
   type t = text
   (==): t -> t -> bool
