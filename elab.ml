@@ -351,7 +351,7 @@ and elab_prim_fun f =
   let e = IL.PrimE(Prim.FunV f) in
   if Prim.is_poly f then
     let ta = TypT(ExT([], VarT("a", BaseK))) in
-    FunT(["a", BaseK], ta, ExT([], t), Explicit ef),
+    FunT(["a", BaseK], ta, ExT([], t), Explicit Pure),
     IL.GenE("a", IL.BaseK, IL.LamE("_", erase_typ ta, e))
   else
     t, e
