@@ -32,7 +32,8 @@ let load mod_path fake_path real_path =
     let source = really_input_string f size in
     close_in f;
     source in
-  let mod_source = load_file mod_path in
+  let mod_source =
+    if Lib.Sys.file_exists_at mod_path then load_file mod_path else "" in
   let sig_path = Lib.Filename.replace_ext Import.mod_ext Import.sig_ext mod_path in
   if Lib.Sys.file_exists_at sig_path then
     Sealed (mod_source, load_file sig_path)
