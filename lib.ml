@@ -91,3 +91,26 @@ struct
 
   let directory_exists_at path = Sys.file_exists path && Sys.is_directory path
 end
+
+module Option =
+struct
+  let value o ~default =
+    match o with
+    | Some v -> v
+    | None -> default
+
+  let map xy = function
+    | None -> None
+    | Some x -> Some (xy x)
+
+  let bind xO xyO =
+    match xO with
+    | None -> None
+    | Some x -> xyO x
+
+  let traverse xyO xs =
+    let rec loop ys = function
+      | [] -> Some ys
+      | x::xs -> bind (xyO x) @@ fun y -> loop (y::ys) xs in
+    loop [] xs |> map List.rev
+end

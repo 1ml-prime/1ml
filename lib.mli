@@ -36,3 +36,11 @@ sig
   val file_exists_at : string -> bool
   val directory_exists_at : string -> bool
 end
+
+module Option :
+sig
+  val value: 'a option -> default: 'a -> 'a
+  val map: ('a -> 'b) -> 'a option -> 'b option
+  val bind: 'a option -> ('a -> 'b option) -> 'b option
+  val traverse: ('a -> 'b option) -> 'a list -> 'b list option
+end
