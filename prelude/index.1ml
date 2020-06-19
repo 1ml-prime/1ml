@@ -79,7 +79,7 @@ List = {
 
 ;;
 
-Zero :> {type t} = {type t = {}}
+Zero :> {type t} = {}
 
 ;;
 

@@ -118,6 +118,22 @@ let rec project_typ ls t =
   | _ -> raise Not_found
 
 
+(* *)
+
+let is_base_typ = function
+  | TypT(_) -> true
+  | VarT(_, _)
+  | PrimT(_)
+  | StrT(_)
+  | FunT(_, _, _, _)
+  | WrapT(_)
+  | LamT(_, _)
+  | AppT(_, _)
+  | TupT(_)
+  | DotT(_, _)
+  | RecT(_, _)
+  | InferT(_) -> false
+
 (* Size check *)
 
 let undecidable_flag = ref false
