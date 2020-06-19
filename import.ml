@@ -15,10 +15,10 @@ let (<|>) xO uxO =
   | some -> some
 
 let finish path =
-  if Lib.Sys.file_exists_at path then
-    Some path
-  else
-    None
+  if Lib.Sys.file_exists_at path
+     || Lib.Sys.file_exists_at (Lib.Filename.replace_ext mod_ext sig_ext path)
+  then Some path
+  else None
 
 let complete path =
   if Lib.String.is_suffix mod_ext path then

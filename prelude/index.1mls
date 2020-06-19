@@ -1,8 +1,4 @@
-local
-  type bool = primitive "bool"
-  type char = primitive "char"
-  type int = primitive "int"
-  type text = primitive "text"
+local import "./primitives"
 
 Alt: {
   type t _ _
