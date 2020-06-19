@@ -139,7 +139,7 @@ let rec sub_typ env t1 t2 ps =
     | StrT(tr1), StrT(tr2) ->
       let ts, zs, fs = sub_row env tr1 tr2 ps in
       ts, zs,
-      IL.TupE(List.map2 (fun (l, _) f -> l, IL.AppE(f, IL.DotE(e1, l))) tr2 fs)
+      IL.TupE(List.map2 (fun (l, _) f -> l, f l e1) tr2 fs)
 
     | TupT(tr1), TupT(tr2) ->
       let zs = equal_row env tr1 tr2 ps in
@@ -291,9 +291,19 @@ and sub_row env tr1 tr2 ps =
     [], [], []
   | (l, t2)::tr2' ->
     Trace.sub (lazy ("[sub_row] l = " ^ l));
+    let t1, zs, app =
+      try List.assoc l tr1, [], fun f l x -> IL.AppE(f, IL.DotE(x, l)) with
+      | Not_found ->
+        if is_base_typ t2 && is_small_typ t2
+        then
+          let t, zs = guess_typ (Env.domain_typ env) BaseK in
+          let s = ExT([], t) in
+          TypT(s), zs, fun f _ _ -> IL.AppE(f, IL.LamE("_", erase_extyp s, IL.TupE[]))
+        else
+          raise (Sub (Struct(l, Missing)));
+    in
     let ts1, zs1, f =
-      try sub_typ env (List.assoc l tr1) t2 ps with
-      | Not_found -> raise (Sub (Struct(l, Missing)))
+      try sub_typ env t1 t2 ps with
       | Sub e -> raise (Sub (Struct(l, e)))
     in
     let rec psubst p t =
@@ -305,7 +315,7 @@ and sub_row env tr1 tr2 ps =
     let su = List.map2 psubst (Lib.List.take (List.length ts1) ps) ts1 in
     let ps' = Lib.List.drop (List.length ts1) ps in
     let ts2, zs2, fs = sub_row env tr1 (subst_row su tr2') ps' in
-    ts1 @ ts2, zs1 @ zs2, f::fs
+    ts1 @ ts2, zs @ zs1 @ zs2, app f::fs
 
 and equal_typ env t1 t2 =
   Trace.sub (lazy ("[equal_typ] t1 = " ^ string_of_norm_typ t1));

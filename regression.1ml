@@ -2,6 +2,13 @@ local import "basis"
 
 ;;
 
+assert b =
+  if not b then
+    Text.print "Assertion failed"
+    System.exit 1
+
+;;
+
 record_inference x = x.works_a_little
 
 ;;
@@ -49,6 +56,16 @@ Equivalence: {
   symmetry 'a 'b (eq: t a b) : t b a =
     wr fun (type p _) => un eq (type fun b => p b ~> p a) id
 }
+
+;;
+
+type MONOID = {type t, empty: t, (++): t -> t ~> t}
+cat (M: MONOID) = List.foldl M.++ M.empty
+do assert (cat {empty = 0, (++) = (+)} (40 :: (2 :: nil)) == 42)
+
+Poly: {type t} = {} ;; Poly 'x = {type t = x}
+do 1: Poly.t
+do "": Poly.t
 
 ;;
 
@@ -274,7 +291,6 @@ N :> {
   type Z
   type S _
 } = {
-  type Z   = {}
   type S _ = {}
 }
 
