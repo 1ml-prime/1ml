@@ -69,6 +69,11 @@ do "": Poly.t
 
 ;;
 
+ManifestTycon: {type t (i: {}) 'z (m: {type t, x: t}) = (m.t, z, m.t)} = {}
+do ManifestTycon.t {} {type t = int, x = 1}
+
+;;
+
 AmateurOptics = {
   type FUNCTOR = {
     type t a
@@ -246,12 +251,9 @@ in {
 
 ;;
 
-Alt = {
-  ...Alt
-  type a | b = alt a b
-} : {
+Alt = Alt : {
   ...(= Alt)
-  type _ | _
+  type a | b = alt a b
 }
 (|) = Alt.|
 

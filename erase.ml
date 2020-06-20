@@ -53,3 +53,23 @@ let erase_env env =
   let env2' = VarSet.fold (fun x env' ->
     IL.add_val x (erase_typ (lookup_val x env)) env') (domain_val env) env1' in
   env2'
+
+let rec erase_tycon = function
+  | FunT(aks1, td, ExT(aks2, tc), e) ->
+    (match e with
+    | Explicit Pure | Implicit ->
+      let e = IL.genE(erase_bind aks2, erase_tycon tc) in
+      IL.genE(erase_bind aks1, IL.LamE("_", erase_typ td, e))
+    | Explicit Impure ->
+      assert false)
+  | TypT(s) -> IL.LamE("_", erase_extyp s, IL.TupE[])
+  | VarT(_, _)
+  | PrimT(_)
+  | StrT(_)
+  | WrapT(_)
+  | LamT(_, _)
+  | AppT(_, _)
+  | DotT(_, _)
+  | TupT(_)
+  | RecT(_, _)
+  | InferT(_) -> assert false

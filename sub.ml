@@ -40,6 +40,40 @@ let rec string_of_error = function
   | Left e -> ": " ^ string_of_error e
   | Right e -> " on right-hand side: " ^ string_of_error e
 
+(* *)
+
+let rec is_transparent_typ env = function
+  | VarT(a, k) -> Env.mem_typ a env
+  | AppT(t, ts) ->
+    is_transparent_typ env t && List.for_all (is_transparent_typ env) ts
+  | PrimT(_)
+  | StrT(_)
+  | FunT(_, _, _, _)
+  | TypT(_)
+  | WrapT(_)
+  | LamT(_, _)
+  | TupT(_)
+  | DotT(_, _)
+  | RecT(_, _)
+  | InferT(_) -> true
+
+let rec is_transparent_tycon env = function
+  | FunT(aks1, td, ExT(aks2, tc), e) ->
+    (match e with
+    | Explicit Pure | Implicit ->
+      is_transparent_tycon (add_typs aks2 (add_typs aks1 env)) tc
+    | Explicit Impure -> false)
+  | TypT(ExT(aks, t)) -> is_transparent_typ (add_typs aks env) t
+  | VarT(_, _)
+  | PrimT(_)
+  | StrT(_)
+  | WrapT(_)
+  | LamT(_, _)
+  | AppT(_, _)
+  | TupT(_)
+  | DotT(_, _)
+  | RecT(_, _)
+  | InferT(_) -> false
 
 (* Materialization *)
 
@@ -91,6 +125,18 @@ let lift_warn at t env zs =
 
 (* Subtyping *)
 
+let extract_bind env tr1 l t2 =
+  try List.assoc l tr1, [], fun f l x -> IL.AppE(f, IL.DotE(x, l)) with
+  | Not_found ->
+    if is_base_typ t2 && is_small_typ t2 then
+      let t, zs = guess_typ (Env.domain_typ env) BaseK in
+      let t1 = TypT(ExT([], t)) in
+      t1, zs, fun f _ _ -> IL.AppE(f, erase_tycon t1)
+    else if is_transparent_tycon env t2 then
+      t2, [], fun f _ _ -> IL.AppE(f, erase_tycon t2)
+    else
+      raise (Sub (Struct(l, Missing)))
+
 let resolve_typ z t =
   Trace.sub (lazy ("[resolve_typ] z = " ^ string_of_norm_typ (InferT(z))));
   Trace.sub (lazy ("[resolve_typ] t = " ^ string_of_norm_typ t));
@@ -101,6 +147,11 @@ let unify_typ t1 t2 =
   Trace.sub (lazy ("[unify_typ] t2 = " ^ string_of_norm_typ t2));
   unify_typ t1 t2
 
+let rec psubst p t =
+  match p with
+  | VarT(a, k) -> a, t
+  | AppT(p', ts) -> psubst p' (LamT(List.map unvarT ts, t))
+  | _ -> assert false
 
 let rec sub_typ env t1 t2 ps =
   Trace.sub (lazy ("[sub_typ] t1 = " ^ string_of_norm_typ t1));
@@ -291,27 +342,10 @@ and sub_row env tr1 tr2 ps =
     [], [], []
   | (l, t2)::tr2' ->
     Trace.sub (lazy ("[sub_row] l = " ^ l));
-    let t1, zs, app =
-      try List.assoc l tr1, [], fun f l x -> IL.AppE(f, IL.DotE(x, l)) with
-      | Not_found ->
-        if is_base_typ t2 && is_small_typ t2
-        then
-          let t, zs = guess_typ (Env.domain_typ env) BaseK in
-          let s = ExT([], t) in
-          TypT(s), zs, fun f _ _ -> IL.AppE(f, IL.LamE("_", erase_extyp s, IL.TupE[]))
-        else
-          raise (Sub (Struct(l, Missing)));
-    in
+    let t1, zs, app = extract_bind env tr1 l t2 in
     let ts1, zs1, f =
       try sub_typ env t1 t2 ps with
-      | Sub e -> raise (Sub (Struct(l, e)))
-    in
-    let rec psubst p t =
-      match p with
-      | VarT(a, k) -> a, t
-      | AppT(p', ts) -> psubst p' (LamT(List.map unvarT ts, t))
-      | _ -> assert false
-    in
+      | Sub e -> raise (Sub (Struct(l, e))) in
     let su = List.map2 psubst (Lib.List.take (List.length ts1) ps) ts1 in
     let ps' = Lib.List.drop (List.length ts1) ps in
     let ts2, zs2, fs = sub_row env tr1 (subst_row su tr2') ps' in
