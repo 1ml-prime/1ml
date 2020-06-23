@@ -74,6 +74,22 @@ do ManifestTycon.t {} {type t = int, x = 1}
 
 ;;
 
+Nat: {
+  type t = (type _ _ : type) -> type -> type
+  type Zero       : t = fun (type S _ : type) Z : type => Z
+  type Inc (n: t) : t = fun (type S _ : type) Z : type => S (n S Z)
+} = {}
+
+let
+  {type P _: type -> type} = {P = Pair.t}
+  (type P' _: type -> type) = Pair.t
+  F (type P _: type -> type) = P int text
+  do (42, "101"): F P
+  do (42, "101"): F P'
+in {}
+
+;;
+
 AmateurOptics = {
   type FUNCTOR = {
     type t a

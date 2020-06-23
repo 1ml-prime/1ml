@@ -2,74 +2,143 @@ local import "prelude"
 
 ;; 1ML basically gives you simply typed lambda calculus (STLC) at the type
 ;; level, which is unsurprising as 1ML is just as powerful as Fω.  You can even
-;; use lambda and let -expressions at the type level (note the `fst` and `snd`
-;; definitions below).  So, you can encode various kinds of stuff at the type
-;; level.  Of course, STLC is quite restrictive.
+;; use lambda and let -expressions at the type level.  STLC is quite
+;; restrictive, but you can still encode various kinds of stuff at the type
+;; level.
 
-TypeLevel = {
+TypeLevel: {
+  Pair: {
+    type t = (type _ _ _) -> type
+
+    fst: t -> type
+    snd: t -> type
+
+    of: type -> type -> t
+
+    cross: (type _ _) -> (type _ _) -> t -> t
+
+    map: (type _ _) -> t -> t
+  }
+
+  Bool: {
+    type t = type -> type -> type
+
+    true: t
+    false: t
+
+    not: t -> t
+
+    andAlso: t -> t -> t
+    orElse: t -> t -> t
+
+    equals: t -> t -> t
+  }
+
+  Alt: {
+    type t = (type _ _) -> (type _ _) -> type
+
+    inL: type -> t
+    inR: type -> t
+
+    isL: t -> Bool.t
+    isR: t -> Bool.t
+
+    case: t -> t
+  }
+
+  Nat: {
+    type t = (type _ _) -> type -> type
+
+    isZero: t -> Bool.t
+
+    zero: t
+    one: t
+
+    succ: t -> t
+    (+): t -> t -> t
+    (*): t -> t -> t
+  }
+
+  List: {
+    type t = type -> (type _ _ _) -> type
+
+    nil: t
+    (::): type -> t -> t
+
+    map: (type _ _) -> t -> t
+
+    isNil: t -> Bool.t
+
+    head: t -> type
+  }
+} = {
   Pair = {
     type t = (type _ _ _) -> type
 
-    type fst (p: t) = p fun fst _ => fst
-    type snd (p: t) = p fun _ snd => snd
+    type fst (p: t): type = p fun fst _ => fst
+    type snd (p: t): type = p fun _ snd => snd
 
-    type of fst snd (type d _ _) = d fst snd
+    type of fst snd: t = fun (type d _ _) => d fst snd
 
-    type cross (type f _) (type s _) (p: t) (type d _ _) =
+    type cross (type f _) (type s _) (p: t): t = fun (type d _ _) =>
       of (f (fst p)) (s (snd p)) d
 
-    type map (type f _) (p: t) (type d _ _) = cross f f p d
+    type map (type f _) (p: t): t = fun (type d _ _) => cross f f p d
   }
 
   Bool = {
     type t = type -> type -> type
 
-    type true  true     _ = true
-    type false    _ false = false
+    type  true: t = fun true     _ => true
+    type false: t = fun    _ false => false
 
-    type not (x: t) true false = x false true
+    type not (x: t): t = fun true false => x false true
 
-    type andAlso (l: t) (r: t) false true = l (r true false) false
-    type  orElse (l: t) (r: t) false true = l true (r true false)
+    type andAlso (l: t) (r: t): t = fun false true => l (r true false) false
+    type  orElse (l: t) (r: t): t = fun false true => l true (r true false)
 
-    type equals (l: t) (r: t) true false = l (r true false) (r false true)
+    type equals (l: t) (r: t): t =
+      fun true false => l (r true false) (r false true)
   }
 
   Alt = {
-    type t = (type -> type) -> (type -> type) -> type
+    type t = (type _ _) -> (type _ _) -> type
 
-    type inL v (type inL _) (type _   _) = inL v
-    type inR v (type _   _) (type inR _) = inR v
+    type inL v: t = fun (type inL _) (type _   _) => inL v
+    type inR v: t = fun (type _   _) (type inR _) => inR v
 
-    type isL (a: t) true false = a (fun _ => true) (fun _ => false)
-    type isR (a: t) true false = a (fun _ => false) (fun _ => true)
+    type isL (a: t): Bool.t =
+      fun true false => a (fun _ => true) (fun _ => false)
+    type isR (a: t): Bool.t =
+      fun true false => a (fun _ => false) (fun _ => true)
 
     type case (a: t) (type inL _) (type inR _) = a inL inR
   }
 
   Nat = {
-    type t = (type -> type) -> type -> type
+    type t = (type _ _) -> type -> type
 
-    type isZero (n: t) true false = n (fun _ => false) true
+    type isZero (n: t): Bool.t = fun true false => n (fun _ => false) true
 
-    type  zero (type _    _) zero = zero
-    type   one (type succ _) zero = succ zero
+    type zero: t = fun (type _    _) zero => zero
+    type  one: t = fun (type succ _) zero => succ zero
 
-    type  succ        (n: t) (type succ _) zero = succ (n succ zero)
-    type  plus (m: t) (n: t) (type succ _) zero = n succ (m succ zero)
-    type times (m: t) (n: t) (type succ _) zero = n (m succ) zero
+    type     succ (n: t): t = fun (type succ _) zero => succ (n succ zero)
+    type (m: t) + (n: t): t = fun (type succ _) zero => n succ (m succ zero)
+    type (m: t) * (n: t): t = fun (type succ _) zero => n (m succ) zero
   }
 
   List = {
-    type t = type -> (type -> type -> type) -> type
+    type t = type -> (type _ _ _) -> type
 
-    type nil            nil (type _ :: _) = nil
-    type (x :: (xs: t)) nil (type _ :: _) = x :: xs nil (::)
+    type nil           : t = fun nil (type _ :: _) => nil
+    type (x :: (xs: t)): t = fun nil (type _ :: _) => x :: xs nil (::)
 
-    type map (type fn _) (xs: t) nil (type _ :: _) = xs nil fun x => (::) (fn x)
+    type map (type fn _) (xs: t): t =
+      fun nil (type _ :: _) => xs nil fun x => (::) (fn x)
 
-    type isNil (xs: t) true false = xs true fun _ _ => false
+    type isNil (xs: t): Bool.t = fun true false => xs true fun _ _ => false
 
-    type head (xs: t) = xs zero fun h _ => h
+    type head (xs: t): type = xs zero fun h _ => h
   }
 }
