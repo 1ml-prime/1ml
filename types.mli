@@ -99,9 +99,6 @@ val diff_row : 'a row -> 'a row -> 'a row
 
 val project_typ : lab list -> typ -> typ (* raise Not_found *)
 
-(* *)
-
-val is_base_typ : typ -> bool
 
 (* Size check *)
 

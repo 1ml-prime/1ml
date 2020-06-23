@@ -8,5 +8,3 @@ val erase_extyp : Types.extyp -> Fomega.typ
 val erase_bind :
   (Types.var * Types.kind) list -> (Fomega.var * Fomega.kind) list
 val erase_env : Env.env -> Fomega.env
-
-val erase_tycon : Types.typ -> Fomega.exp
