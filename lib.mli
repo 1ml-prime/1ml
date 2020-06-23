@@ -36,3 +36,8 @@ sig
   val file_exists_at : string -> bool
   val directory_exists_at : string -> bool
 end
+
+module Option :
+sig
+  val value: 'a option -> default: 'a -> 'a
+end

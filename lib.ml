@@ -91,3 +91,11 @@ struct
 
   let directory_exists_at path = Sys.file_exists path && Sys.is_directory path
 end
+
+module Option =
+struct
+  let value o ~default =
+    match o with
+    | Some v -> v
+    | None -> default
+end
