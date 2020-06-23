@@ -116,10 +116,12 @@ implparam :
 annparam :
   | LPAR head COLON typ RPAR
     { (headB($2)@@ati 2, $4, Expl@@ati 3)@@at() }
-  | LPAR typpat RPAR
-    { let (head, typparams) = $2 in
-      (headB(head)@@head.at, funT(typparams, TypT@@at(), Pure@@ati 2)@@ati 2,
-        Expl@@ati 2)@@at() }
+  | LPAR typpat optannot RPAR
+    { let (h, tps) = $2 in
+      (headB(h)@@h.at,
+       funT(tps,
+         Lib.Option.value $3 ~default:(TypT@@at()), Pure@@ati 2)@@ati 2,
+       Expl@@ati 2)@@at() }
   | implparam
     { $1 }
 ;
@@ -220,9 +222,9 @@ optannot :
 
 opttypdef :
   |
-    { TypT@@at() }
+    { None }
   | EQUAL typ
-    { EqT(typE($2)@@ati 2)@@ati 2 }
+    { Some (typE($2)@@ati 2) }
 ;
 
 atdec :
@@ -233,8 +235,16 @@ atdec :
         @@at() }
   | name
     { VarD($1, funT([], EqT(VarE($1)@@ati 1)@@ati 1, Pure@@ati 1)@@ati 1)@@at() }
-  | typdec opttypdef
-    { VarD(fst $1, funT(snd $1, $2, Pure@@at())@@at())@@at() }
+  | typdec optannot opttypdef
+    { VarD(fst $1,
+        funT(snd $1,
+          (match $2, $3 with
+           | None, None -> TypT@@at()
+           | Some t2, None -> t2
+           | None, Some te3 -> EqT(te3)@@ati 3
+           | Some t2, Some te3 ->
+             EqT(annotE(te3, t2)@@span[ati 2; ati 3])@@span[ati 2; ati 3]),
+          Pure@@at())@@at())@@at() }
   | ELLIPSIS typ
     { InclD($2)@@at() }
   | LET bind IN typ
@@ -431,8 +441,8 @@ atbind :
     { patB($1, $2($4))@@at() }
   | name
     { VarB($1, VarE($1.it@@at())@@at())@@at() }
-  | typpat EQUAL typ
-    { VarB(fst $1, funE(snd $1, typE($3)@@ati 3)@@at())@@at() }
+  | typpat bindanns_opt EQUAL typ
+    { VarB(fst $1, funE(snd $1, $2(typE($4)@@span[ati 2; ati 4]))@@at())@@at() }
   | ELLIPSIS exp
     { InclB($2)@@at() }
   | DO exp
@@ -470,10 +480,12 @@ atpat :
     { annotP(headP($2)@@$2.at, funT($3::$4, $6, Pure@@at())@@at())@@at() }
   | LPAR patlist RPAR
     { match $2 with [p] -> p | ps -> tupP(ps, at())@@at() }
-  | LPAR typpat RPAR
-    { let (head, typparams) = $2 in
-      annotP(headP(head)@@head.at,
-        funT(typparams, TypT@@at(), Pure@@at())@@at())@@at() }
+  | LPAR typpat optannot RPAR
+    { let (h, tps) = $2 in
+      annotP(headP(h)@@h.at,
+        funT(tps,
+          Lib.Option.value $3 ~default:(TypT@@at()),
+          Pure@@at())@@at())@@at() }
 ;
 annpat_op :
   | COLON
@@ -510,10 +522,13 @@ atdecon :
   | name typparam typparamlist COLON typ
     { ($1, annotP(varP($1)@@$1.at,
        funT($2::$3, $5, Pure@@at())@@at())@@at())@@at() }
-  | typdec
-    { let (name, typparams) = $1 in
-      (name, annotP(varP(name)@@name.at,
-       funT(typparams, TypT@@at(), Pure@@at())@@at())@@at())@@at() }
+  | typdec optannot
+    { let (n, tps) = $1 in
+      (n,
+       annotP(varP(n)@@n.at,
+         funT(tps,
+           Lib.Option.value $2 ~default:(TypT@@at()),
+           Pure@@at())@@at())@@at())@@at() }
 /*
   | LPAR decon RPAR
     { $2 }
