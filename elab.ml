@@ -175,6 +175,7 @@ let elab_eff env eff =
 
 let rec elab_typ env typ l =
   Trace.elab (lazy ("[elab_typ] " ^ EL.label_of_typ typ));
+  let lift_warn = lift_warn (level ()) in
   (fun (s, zs) -> typ.at, env, s, zs, None, EL.label_of_typ typ) <<<
   match typ.it with
   | EL.PathT(exp) ->
@@ -312,6 +313,7 @@ and elab_dec env dec l =
 
 and elab_pathexp env exp l =
   Trace.elab (lazy ("[elab_pathexp] " ^ EL.label_of_exp exp));
+  let lift_warn = lift_warn (level ()) in
   let ExT(aks, t), p, zs, _ = elab_instexp env exp l in
 Trace.debug (lazy ("[ExpP] s = " ^ string_of_norm_extyp (ExT(aks, t))));
   if p = Impure then
@@ -360,6 +362,8 @@ and elab_const = function
 
 and elab_exp env exp l =
   Trace.elab (lazy ("[elab_exp] " ^ EL.label_of_exp exp));
+  let lift = lift (level ()) in
+  let lift_warn = lift_warn (level ()) in
   (fun (s, p, zs, e) -> exp.at, env, s, zs, Some e, EL.label_of_exp exp) <<<
   match exp.it with
   | EL.VarE(var) ->
@@ -393,7 +397,7 @@ Trace.debug (lazy ("[FunE] env =" ^ VarSet.fold (fun a s -> s ^ " " ^ a) (domain
       | Pure, f -> f
       | _ -> error impl.at "impure function cannot be implicit" in
     ExT([], FunT(aks, t, s, p')), Pure,
-    lift (* TODO: _warn exp.at (FunT(aks, t, s, p')) *) env (zs1 @ zs2),
+    lift (* TODO: _warn exp.at *) (FunT(aks, t, s, p')) env (zs1 @ zs2),
     IL.genE(erase_bind aks, IL.LamE(var.it, erase_typ t, e2))
 
   | EL.WrapE(var, typ) ->
@@ -604,6 +608,7 @@ t = !b:*. [= b] -> {t : [= t4.t b], u : !a:*. [= a] => [= (a, t4.u b a)]}
 
 and elab_bind env bind l =
   Trace.elab (lazy ("[elab_bind] " ^ EL.label_of_bind bind));
+  let lift_warn = lift_warn (level ()) in
   (fun (s, p, zs, e) -> bind.at, env, s, zs, Some e, EL.label_of_bind bind) <<<
   match bind.it with
   | EL.VarB(var, exp) ->
@@ -678,7 +683,7 @@ Trace.debug (lazy ("[GenE] a1 = " ^ string_of_typ (VarT(a1, BaseK))));
       match !z with
       | Undet u -> u.level >= level
       | Det _ -> assert false
-    ) (lift (add_typs aks env) zs) in
+    ) (lift level t (add_typs aks env) zs) in
   if p = Impure || zs1 = [] then
     s, p, zs1 @ zs2, e
   else begin

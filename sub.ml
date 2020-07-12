@@ -112,19 +112,21 @@ let rec materialize_typ = function
 
 (* Lifting *)
 
-let lift env zs =
+let lift bottom t env zs =
   let dom = domain_typ env in
   List.filter (fun z ->
     match !z with
     | Det _ -> false
-    | Undet u -> u.vars <- VarSet.inter u.vars dom; true
+    | Undet u ->
+      u.vars <- VarSet.inter u.vars dom;
+      u.level < bottom || occurs_typ u t
   ) zs
 
 
 module IdSet = Set.Make(struct type t = int let compare = compare end)
 let warned_already = ref IdSet.empty
 
-let lift_warn at t env zs =
+let lift_warn bottom at t env zs =
   let dom = domain_typ env in
   List.filter (fun z ->
     match !z with
@@ -142,7 +144,7 @@ let lift_warn at t env zs =
         );
         warned_already := IdSet.add u.id !warned_already
       );
-      true
+      u.level < bottom || occurs_typ u t
   ) zs
 
 
@@ -172,6 +174,7 @@ let rec psubst p t =
   | _ -> assert false
 
 let rec sub_typ oneway env t1 t2 ps =
+  let lift = lift (level ()) t1 in
   Trace.sub (lazy ("[sub_typ] t1 = " ^ string_of_norm_typ t1));
   Trace.sub (lazy ("[sub_typ] t2 = " ^ string_of_norm_typ t2));
   Trace.sub (lazy ("[sub_typ] ps = " ^
@@ -348,6 +351,7 @@ and sub_extyp oneway env s1 s2 ps =
   | [], [] ->
     sub_typ oneway env t1 t2 ps
   | _ ->
+    let lift = lift (level ()) t1 in
     let ts, zs, f =
       sub_typ oneway (add_typs aks1 env) t1 t2 (varTs aks2) in
     [], lift env zs,
