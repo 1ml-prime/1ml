@@ -1,0 +1,73 @@
+local import "prelude"
+
+;; The following snippets are inspired by examples from the paper
+;;
+;;   Martin Sulzmann, Manuel M. T. Chakravarty, Simon Peyton Jones, and Kevin
+;;   Donnelly.  System F with Type Equality Coercions.
+;;
+;; Note that the snippets below contain some unnecessary type ascriptions for
+;; clarity.
+
+GADTs = {
+  Exp = {
+    local
+      type I (type t _) = {
+        type case _
+        Zero       :               case int
+        Succ       :      t int ~> case int
+        Pair 'a 'b : t a ~> t b ~> case (a, b)
+      }
+      type T (type t _) a = (m: I t) ~> m.case a
+      ...rec {type t _} => {type t a = wrap T t a}
+      T = T t
+      I = I t
+      mk (fn: T _) = fn :# wrap T _ :@ t _
+    t
+    case (m: I) (e :# wrap T _ :@ t _) = e m
+    Zero     : t _ = mk fun (m: I) => m.Zero
+    Succ x   : t _ = mk fun (m: I) => m.Succ x
+    Pair l r : t _ = mk fun (m: I) => m.Pair l r
+  }
+
+  eval = rec (eval 'a: Exp.t a ~> a) =>
+    Exp.case {
+      type case x = x
+      Zero = 0
+      Succ x = eval x + 1
+      Pair l r = (eval l, eval r)
+    }
+}
+
+AssociatedTypes = {
+  type EQ = {
+    type t
+    (==): t -> t -> bool
+  }
+
+  type COLLECTS = {
+    Elem: {type t}
+    type t
+    empty: t
+    insert: Elem.t -> t ~> t
+  }
+
+  CollectEq (Elem: EQ) :> COLLECTS with (Elem = Elem) = {
+    empty = List.nil
+    insert = List.::
+  }
+
+  BitSet :> COLLECTS with (Elem = Char) = {
+    empty = List.nil
+    insert = List.::
+  }
+}
+
+FunctionalDependences = {
+  type T a = (type F _) -> F a ~> F a
+
+  F_int_bool = fun (_: (= int)) => bool
+
+  combine 'a (f: T a) (g: T a) : T a = fun (type F _) => f F << g F
+}
+
+Newtype = rec {type T} => {type T = T ~> T}
