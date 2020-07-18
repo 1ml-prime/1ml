@@ -341,14 +341,14 @@ This also shows that implicit functions naturally are first-class values.
 #### Recursive Types
 
 There are no datatype definitions, recursive types have to be defined
-explicitly, and require explicit injection/projection.
+explicitly, and sometimes require explicit annotations.
 
 ```1ml
 type stream = rec t => {hd : int, tl : () ~> opt t} ;; creates rec type
-single x :@ stream = {hd = x, tl = fun () => none}  ;; b :@ t rolls value into t
-({hd = n} :@ stream) = single 5        ;; p :@ t pattern matches on rec value
+single x : stream = {hd = x, tl = fun () => none}  ;; b : t rolls value into t
+{hd = n} = single 5                    ;; pattern match rec value
 do Int.print n                         ;; or:
-do Int.print (single 7 @: stream).hd   ;; e @: t unrolls rec value directly
+do Int.print (single 7).hd             ;; access rec value
 ```
 
 #### Recursive Functions
@@ -359,16 +359,16 @@ The `rec` expression form allows defining recursive functions:
 count = rec self => fun i =>
   if i <> 0 then self (i - 1)
 
-repeat = rec self => fun x =>
-  {hd = x, tl = fun () => some (self x)} :@ stream
+repeat = rec self => fun x : stream =>
+  {hd = x, tl = fun () => some (self x)}
 ```
 
 Mutual recursion is also expressible:
 
 ```1ml
 {even, odd} = rec (self : {even : int ~> stream, odd : int ~> stream}) => {
-  even x :@ stream = {hd = x, tl = fun () => some (self.odd (x + 1))}
-  odd x :@ stream = {hd = x, tl = fun () => some (self.even (x + 1))}
+  even x : stream = {hd = x, tl = fun () => some (self.odd (x + 1))}
+  odd x : stream = {hd = x, tl = fun () => some (self.even (x + 1))}
 }
 ```
 
@@ -392,13 +392,15 @@ Opt :> OPT = {
   ;; Church encoding; it requires the abstract type opt a to be implemented
   ;; with a polymorphic (i.e., large) type. Thus, wrap the type.
   type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
-  none :# opt _ = fun (b : type) (n : b) (s : _ ~> b) => n
-  some x :# opt _ = fun (b : type) (n : b) (s : _ ~> b) => s x
-  caseopt (xo :# opt _) = xo _
+  none (b : type) (n : b) (s : _ ~> b) = n
+  some x (b : type) (n : b) (s : _ ~> b) = s x
+  caseopt (xo : opt _) = xo _
 }
 ```
 
-Note how values of type `wrap T` have to be wrapped and unwrapped explicitly.
+Values of type `T` can be implicitly wrapped to `wrap T` and, in case `wrap T`
+contains no abstract types, can be implicitly unwrapped to `T`. In case `wrap T`
+contains abstract types, unwrapping must be done explicitly.
 
 ---
 

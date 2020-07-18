@@ -537,6 +537,39 @@ and unify_row r1 r2 =
   with Invalid_argument _ -> false
 
 
+(* rec *)
+
+let is_undet = function
+  | InferT _ -> true
+  | _ -> false
+
+let rec try_rec_from_typ' t =
+  match t with
+  | RecT(ak, unroll_t) as rec_t ->
+    Some (rec_t, unroll_t, rec_t, ak)
+  | AppT(t, ts) ->
+    try_rec_from_typ' t
+     |> Lib.Option.map (fun (rec_t, unroll_t, roll_t, ak) ->
+        rec_t, AppT(unroll_t, ts), AppT(roll_t, ts), ak)
+  | DotT(t, lab) ->
+    try_rec_from_typ' t
+     |> Lib.Option.map (fun (rec_t, unroll_t, roll_t, ak) ->
+            rec_t, DotT(unroll_t, lab), DotT(roll_t, lab), ak)
+  | _ ->
+    None
+
+let try_rec_from_typ t =
+  try_rec_from_typ' t
+   |> Lib.Option.map (fun (rec_t, unroll_t, roll_t, ak) ->
+      subst_typ (subst [ak] [rec_t]) unroll_t, roll_t)
+
+let try_rec_from_extyp = function
+  | ExT([], t) ->
+    try_rec_from_typ t
+  | _ ->
+    None
+
+
 (* String conversion *)
 
 let verbose_binders_flag = ref false
