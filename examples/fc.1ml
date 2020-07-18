@@ -17,16 +17,13 @@ GADTs = {
         Succ       :      t int ~> case int
         Pair 'a 'b : t a ~> t b ~> case (a, b)
       }
-      type T (type t _) a = (m: I t) ~> m.case a
-      ...rec {type t _} => {type t a = wrap T t a}
-      T = T t
+      ...rec {type t _} => {type t a = wrap (m: I t) ~> m.case a}
       I = I t
-      mk (fn: T _) = fn :# wrap T _ :@ t _
     t
-    case (m: I) (e :# wrap T _ :@ t _) = e m
-    Zero     : t _ = mk fun (m: I) => m.Zero
-    Succ x   : t _ = mk fun (m: I) => m.Succ x
-    Pair l r : t _ = mk fun (m: I) => m.Pair l r
+    case (m: I) (e: t _) = e m
+    Zero     : t _ = fun (m: I) => m.Zero
+    Succ x   : t _ = fun (m: I) => m.Succ x
+    Pair l r : t _ = fun (m: I) => m.Pair l r
   }
 
   eval = rec (eval 'a: Exp.t a ~> a) =>

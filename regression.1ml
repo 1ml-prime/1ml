@@ -44,17 +44,12 @@ Equivalence: {
   to   'a 'b: t a b -> a ~> b
   from 'a 'b: t a b -> b ~> a
 } = {
-  type T a b = (type p _) ~> p a ~> p b
-  type t a b = wrap T a b
-  wr (eq: T _ _) :# t _ _ = eq
-  un (eq :# t _ _) = eq
-  transitivity 'a 'b 'c (ab: t a b) (bc: t b c) =
-    wr fun (type p _) => un bc p << un ab p
-  reflexivity = wr fun (type p _) => id
-  to eq a = un eq (type fun x => x) a
-  from 'a 'b (eq: t a b) b = un eq (type fun b => b ~> a) id b
-  symmetry 'a 'b (eq: t a b) : t b a =
-    wr fun (type p _) => un eq (type fun b => p b ~> p a) id
+  type t a b = wrap (type p _) ~> p a ~> p b
+  transitivity (ab: t _ _) (bc: t _ _) (type p _) = bc p << ab p
+  reflexivity (type p _) = id
+  to (eq: t _ _) a = eq (type fun x => x) a
+  from (eq: t _ _) b = eq (type fun b => b ~> _) id b
+  symmetry (eq: t _ _) (type p _) = eq (type fun b => p b ~> p _) id
 }
 
 ;;
@@ -220,7 +215,7 @@ type_error rec (R: {}) => {
   kaboom () = R
 }
 
-Kaboom = rec (R: rec R => {kaboom: () ~> R}) :@ (= R) => {kaboom () = R}
+Kaboom = rec (R: rec R => {kaboom: () ~> R}) : (= R) => {kaboom () = R}
 
 ;;
 
@@ -247,14 +242,14 @@ in {
   }) => {
     Even = {
       ...T.Even
-      make 'x (head: x) (tail: T.Odd.t x) :@ T.Even.t x =
+      make 'x (head: x) (tail: T.Odd.t x) : T.Even.t x =
         {head, tail}
-      size 'x (v :@ T.Even.t x) = 1 + R.Odd.size v.tail
+      size 'x (v: T.Even.t x) = 1 + R.Odd.size v.tail
     }
     Odd = {
       ...T.Odd
-      make 'x (v: opt (T.Even.t x)) :@ T.Odd.t x = v
-      size 'x (v :@ T.Odd.t x) =
+      make 'x (v: opt (T.Even.t x)) : T.Odd.t x = v
+      size 'x (v: T.Odd.t x) =
         v |> Opt.case {
           none = 0
           some e = R.Even.size e
@@ -291,11 +286,10 @@ AnnotRecType = {
 Hungry = {
   type eat a = rec eat_a => a ~> eat_a
 
-  eater 'a = rec (eater: eat a) :@ eat a => fun a => eater
+  eater 'a = rec (eater: eat a) : eat a => fun a => eater
 
-  (eater :@ eat _) <+ x = eater x
-
-  do eater <+ 1 <+ 2
+  do eater 1 2
+  do eater 1 2 3
 }
 
 type_error rec {type t _, type u _} => {
@@ -310,9 +304,9 @@ PolyRec = {
 
   t_int = t int
 
-  hmm (x :@ t int) = flip Alt.case x
+  hmm (x : t int) = flip Alt.case x
 
-  t0 = inr (inl (0, 0) :@ t (int, int)) :@ t int
+  t0 = inr (inl (0, 0) : t (int, int)) : t int
 }
 
 N :> {
@@ -327,17 +321,14 @@ ListN = let
     nil     :               p N.Z
     (::) 'n : x ~> t x n ~> p (N.S n)
   }
-  type T x n (type t _ _) = (type p _) -> I x p t ~> p n
 in {
-  ...rec {type t _ _} => {type t x n = wrap T x n t}
+  ...rec {type t _ _} => {type t x n = wrap (type p _) -> I x p t ~> p n}
 
-  case 'x 'n (type p _) (cs: I x p t) (e :# wrap T x n t :@ t x n) =
+  case 'x 'n (type p _) (cs: I x p t) (e : t _ _) =
     e p cs
 
-  let mk 'x 'n (c: T x n t) = c :# wrap T x n t :@ t x n in {
-    nil  'x                     = mk fun (type p _) (r: I x p t) => r.nil
-    'x (v: x) :: 'n (vs: t x n) = mk fun (type p _) (r: I x p t) => r.:: v vs
-  }
+  nil  'x                       (type p _) (r: I x p t) = r.nil
+  ('x (v: x) :: 'n (vs: t x n)) (type p _) (r: I x p t) = r.:: v vs
 } :> {
   type t _ _
 

@@ -113,4 +113,8 @@ struct
       | [] -> Some ys
       | x::xs -> bind (xyO x) @@ fun y -> loop (y::ys) xs in
     loop [] xs |> map List.rev
+
+  let orelse alt = function
+    | None -> alt ()
+    | some -> some
 end

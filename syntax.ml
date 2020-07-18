@@ -301,10 +301,7 @@ let wrapP(p, t2) =
       patB(p, VarE("$"@@t2.at)@@t2.at)@@span[p.at; t2.at]
     )@@span[p.at; t2.at];
    infer = None;
-   annot =
-    match p.it.annot with
-    | None -> Some t2
-    | Some t1 -> Some (AsT(t2, WrapT(t1)@@t1.at)@@span[p.at; t2.at])}
+   annot = None}
 
 let strP(xps, region) =
   match xps with

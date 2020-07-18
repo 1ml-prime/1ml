@@ -18,9 +18,8 @@ let
   type T (type t _) x = (c: J t) ~> c.case x
   ...{
     ...rec {type t _} => {type t x = wrap T t x}
-    case 'x (type case _) (cs: I case t) (e :# wrap T t x :@ t _) =
-      e {case, ...cs}
-    mk 'x (fn: T t x) = fn :# wrap T t x :@ t _
+    case 'x (type case _) (cs: I case t) (e: t _) = e {case, ...cs}
+    mk (fn: T t _) = fn
   } :> {
     type t _
     case 'x: (type case _) -> I case t -> t x ~> case x

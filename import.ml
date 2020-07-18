@@ -9,11 +9,6 @@ let sig_ext = ".1mls"
 let index_file = "index"
 let modules_dir = "node_modules"
 
-let (<|>) xO uxO =
-  match xO with
-  | None -> uxO ()
-  | some -> some
-
 let finish path =
   if Lib.Sys.file_exists_at path
      || Lib.Sys.file_exists_at (Lib.Filename.replace_ext mod_ext sig_ext path)
@@ -29,12 +24,13 @@ let complete path =
     finish (path ^ mod_ext)
 
 let rec search_modules prefix suffix =
-  complete (Filename.concat prefix modules_dir ^ "/" ^ suffix) <|> fun () ->
-  let parent = Filename.dirname prefix in
-  if parent = prefix then
-    None
-  else
-    search_modules parent suffix
+  complete (Filename.concat prefix modules_dir ^ "/" ^ suffix)
+   |> Lib.Option.orelse (fun () ->
+      let parent = Filename.dirname prefix in
+      if parent = prefix then
+        None
+      else
+        search_modules parent suffix)
 
 let resolve parent path =
   let path = Lib.Filename.canonic path in
@@ -50,5 +46,6 @@ let resolve parent path =
           || Lib.Sys.directory_exists_at parent then
     complete (Lib.Filename.canonic (Filename.dirname parent ^ "/" ^ path))
   else
-    search_modules (Filename.dirname parent) path <|> fun () ->
-    complete (std_dir ^ "/" ^ path)
+    search_modules (Filename.dirname parent) path
+     |> Lib.Option.orelse (fun () ->
+        complete (std_dir ^ "/" ^ path))

@@ -180,8 +180,19 @@ let rec sub_typ oneway env t1 t2 ps =
   Trace.sub (lazy ("[sub_typ] ps = " ^
     String.concat ", " (List.map string_of_norm_typ ps)));
   let e1 = IL.VarE("x") in
+  let t1' = norm_typ t1 in
+  let t2' = freshen_typ env (norm_typ t2) in
   let ts, zs, e =
-    match norm_typ t1, freshen_typ env (norm_typ t2) with
+    match (if oneway then try_rec_from_typ t1' else None),
+          (if oneway then try_rec_from_typ t2' else None) with
+    | Some (unroll_t, roll_t), None when not (is_undet t2') ->
+       let ts, zs, f = sub_typ oneway env unroll_t t2' ps in
+       ts, lift env zs, IL.AppE(f, IL.UnrollE(e1))
+    | None, Some (unroll_t, roll_t) when not (is_undet t1') ->
+       let ts, zs, f = sub_typ oneway env t1' unroll_t ps in
+       ts, lift env zs, IL.RollE(IL.AppE(f, e1), erase_typ roll_t)
+    | _ ->
+    match t1', t2' with
     | t1, FunT(aks21, t21, ExT(aks22, t22), Implicit) ->
       assert (aks22 = []);
       let ts, zs, f = sub_typ oneway (add_typs aks21 env) t1 t22 ps in
@@ -237,6 +248,18 @@ let rec sub_typ oneway env t1 t2 ps =
         try sub_extyp oneway env s1 s2 []
         with Sub e -> raise (Sub (Wrap e)) in
       [], zs, IL.TupE["wrap", IL.AppE(f, IL.DotE(e1, "wrap"))]
+
+    | t1, WrapT(s2) when oneway && not (is_undet t1) ->
+      let _, zs, f =
+        try sub_extyp oneway env (ExT([], t1)) s2 []
+        with Sub e -> raise (Sub (Wrap e)) in
+      [], zs, IL.TupE["wrap", IL.AppE(f, e1)]
+
+    | WrapT(ExT([], _) as s1), t2 when oneway && not (is_undet t2) ->
+      let _, zs, f =
+        try sub_extyp oneway env s1 (ExT([], t2)) []
+        with Sub e -> raise (Sub (Wrap e)) in
+      [], zs, IL.DotE(e1, "wrap")
 
     | AppT(t1', ts1), AppT(t2', ts2) ->
       (try

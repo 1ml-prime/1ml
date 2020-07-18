@@ -82,13 +82,13 @@ sift (S : STREAM) :> STREAM = {
 
 Sieve :> STREAM = {
   type state = wrap STREAM
-  start :# state = {
+  start = {
     type state = int
     start = 2
     next n = n + 1
     value s = s
   }
-  next (S :# state) :# state = sift S
+  next (S :# state) = sift S
   value (S :# state) = S.value S.start
 }
 

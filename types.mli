@@ -169,6 +169,14 @@ val unify_typ : typ -> typ -> bool
 val undecidable_flag : bool ref
 
 
+(* rec *)
+
+val is_undet : typ -> bool
+
+val try_rec_from_typ : typ -> (typ * typ) option
+val try_rec_from_extyp : extyp -> (typ * typ) option
+
+
 (* String conversion *)
 
 val verbose_binders_flag : bool ref
