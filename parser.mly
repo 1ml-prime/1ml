@@ -197,8 +197,8 @@ typ :
     { funT([(headB("_"@@ati 1)@@ati 1, $1, Expl@@ati 2)@@ati 1], $3, $2)@@at() }
   | WRAP typ
     { WrapT($2)@@at() }
-  | REC atpat DARROW typ
-    { recT(defaultTP $2, $4)@@at() }
+  | REC atpat bindanns_opt DARROW typ
+    { recT(defaultTP $2, pathT($3(typE($5)@@ati 5))@@at())@@at() }
   | LET bind IN typ
     { letT($2, $4)@@at() }
   | FUN typparam typparamlist bindanns_opt DARROW typ
@@ -373,8 +373,8 @@ exp :
     { $1 }
   | FUN param paramlist bindanns_opt DARROW exp
     { funE($2::$3, $4($6))@@at() }
-  | REC atpat DARROW exp
-    { recE(defaultP $2, $4)@@at() }
+  | REC atpat bindanns_opt DARROW exp
+    { recE(defaultP $2, $3($5))@@at() }
 ;
 
 explist :

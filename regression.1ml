@@ -182,7 +182,7 @@ type_error rec (R: {}) => {
   kaboom () = R
 }
 
-Kaboom = rec (R: rec R => {kaboom: () ~> R}) => {kaboom () = R} :@ (= R)
+Kaboom = rec (R: rec R => {kaboom: () ~> R}) :@ (= R) => {kaboom () = R}
 
 ;;
 
@@ -249,10 +249,14 @@ type (a `>>` b) c = c
 
 ;;
 
+AnnotRecType = {
+  t = type rec (type t x) : type -> type => fun x => (x, t x)
+}
+
 Hungry = {
   type eat a = rec eat_a => a ~> eat_a
 
-  eater 'a = rec (eater: eat a) => (fun a => eater) :@ eat a
+  eater 'a = rec (eater: eat a) :@ eat a => fun a => eater
 
   (eater :@ eat _) <+ x = eater x
 
