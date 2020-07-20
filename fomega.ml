@@ -267,15 +267,6 @@ let rec subst_exp s e =
 
 (* Normalisation *)
 
-let rec varT(a, k) = varT' (VarT(a)) k
-and varT' t = function
-  | BaseK -> t
-  | ArrK(k1, k2) ->
-    let a = rename "eta" in LamT(a, k1, varT' (AppT(t, varT(a, k1))) k2)
-  | ProdK(kr) ->
-    TupT(List.map (fun (l, k) -> l, varT' (DotT(t, l)) k) kr)
-
-
 let rec norm_row norm r =
   match r with
   | [] -> r

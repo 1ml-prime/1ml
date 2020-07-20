@@ -16,7 +16,7 @@ let erase_bind aks = List.map (fun (a, k) -> a, erase_kind k) aks
 
 let rec erase_typ t =
   match norm_typ t with
-  | VarT(a, k) -> IL.varT(a, erase_kind k)
+  | VarT(a, k) -> IL.VarT(a)
   | PrimT(n) -> IL.PrimT(n)
   | StrT(r) -> IL.ProdT(erase_row erase_typ r)
   | FunT(aks, t, s, p) ->
