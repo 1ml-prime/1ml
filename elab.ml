@@ -563,10 +563,16 @@ Trace.debug (lazy ("[UnwrapE] s2 = " ^ string_of_norm_extyp s2));
       let t2, zs2 = elab_pathexp env1 exp1 l in
 Trace.debug (lazy ("[RecT] s1 = " ^ string_of_norm_extyp s1));
 Trace.debug (lazy ("[RecT] t2 = " ^ string_of_norm_typ t2));
+      let vts1 = varTs aks1 in
       let ts, zs3, e =
-        try sub_typ env1 t2 t1 (varTs aks1) with Sub e -> error typ.at
+        try sub_typ env1 t2 t1 vts1 with Sub e -> error typ.at
           ("recursive type does not match annotation: " ^ Sub.string_of_error e)
       in
+      ts
+       |> List.iter (fun t ->
+          let t = norm_typ t in
+          if List.exists (fun t' -> t' = t) vts1 then
+            error typ.at "illegal recursive type alias");
 Trace.debug (lazy ("[RecT] ts = " ^ String.concat ", " (List.map string_of_norm_typ ts)));
       let t3, k3 = try make_rec_typ t1 with Recursive ->
         error typ.at "illegal type for recursive expression" in
