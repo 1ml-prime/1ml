@@ -79,8 +79,6 @@ val subst_exp : exp subst -> exp -> exp
 
 (* Normalisation and Equality *)
 
-val varT : var * kind -> typ  (* eta-long-normal *)
-
 val norm_typ : typ -> typ (* raise Error *)  (* beta normalisation *)
 val norm_exp : exp -> exp (* raise Error *)
 
