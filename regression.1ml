@@ -298,6 +298,12 @@ Hungry = {
   do eater <+ 1 <+ 2
 }
 
+type_error rec {type t _, type u _} => {
+  type t x = u x
+  type u x = int
+}
+type_error type rec t => t
+
 PolyRec = {
   type l a = rec (type t) => a | t
   ...rec {type t a} => {type t a = a | t (a, a)}

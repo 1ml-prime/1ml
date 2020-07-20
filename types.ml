@@ -335,7 +335,14 @@ let rec norm_typ = function
   | FunT(aks, t, s, f) -> FunT(aks, norm_typ t, norm_extyp s, f)
   | TypT(s) -> TypT(norm_extyp s)
   | WrapT(s) -> WrapT(norm_extyp s)
-  | LamT(aks, t) -> LamT(aks, norm_typ t)
+  | LamT(aks, t) ->
+    (match norm_typ t with
+    | AppT(f, ts)
+         when List.for_all2 (fun (a, k) t -> t = VarT (a, k)) aks ts &&
+              List.for_all (fun (a, k) -> not (contains_typ a f)) aks ->
+      f
+    | t -> LamT(aks, t)
+    )
   | AppT(t, ts) ->
     (match norm_typ t with
     | LamT(aks, t') -> norm_typ (subst_typ (subst aks ts) t')
