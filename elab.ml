@@ -730,3 +730,7 @@ and elab_instexp env exp l =
 let elab env exp =
   let s, p, zs, e = elab_exp env exp "" in
   s, p, e
+
+let elab_sig env typ =
+  let s, zs = elab_typ env typ "" in
+  s

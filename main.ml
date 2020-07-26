@@ -22,7 +22,7 @@ let error at msg =
 
 type source =
   | Unsealed of string
-  | Sealed of string * string
+  | Sealed of string Lazy.t * string
 
 let load mod_path fake_path real_path =
   let load_file file =
@@ -33,12 +33,14 @@ let load mod_path fake_path real_path =
     close_in f;
     source in
   let mod_source =
-    if Lib.Sys.file_exists_at mod_path then load_file mod_path else "" in
+    if Lib.Sys.file_exists_at mod_path
+    then lazy (load_file mod_path)
+    else lazy "" in
   let sig_path = Lib.Filename.replace_ext Import.mod_ext Import.sig_ext mod_path in
   if Lib.Sys.file_exists_at sig_path then
     Sealed (mod_source, load_file sig_path)
   else
-    Unsealed mod_source
+    Unsealed (Lazy.force mod_source)
 
 let parse_as production name source =
   let lexbuf = Lexing.from_string source in
@@ -51,13 +53,17 @@ let parse_as production name source =
        Source.right = Lexer.convert_pos lexbuf.Lexing.lex_curr_p} in
     raise (Source.Error (region', s))
 
+let parse_sig mod_name sig_source =
+  let sig_name =
+    Lib.Filename.replace_ext Import.mod_ext Import.sig_ext mod_name in
+  parse_as Parser.sigs sig_name sig_source
+
 let parse mod_name source =
   match source with
   | Unsealed mod_source -> parse_as Parser.prog mod_name mod_source
   | Sealed (mod_source, sig_source) ->
-    let sig_name = Lib.Filename.replace_ext Import.mod_ext Import.sig_ext mod_name in
-    let exp = parse_as Parser.prog mod_name mod_source in
-    let typ = parse_as Parser.sigs sig_name sig_source in
+    let typ = parse_sig mod_name sig_source in
+    let exp = parse_as Parser.prog mod_name (Lazy.force mod_source) in
     let open Source in
     Syntax.sealE(exp, typ)@@nowhere_region
 
@@ -101,22 +107,30 @@ let rec process_imports prog =
         if not (Import.S.mem canonic !Import.imports) then (
           Import.imports := Import.S.add canonic !Import.imports;
           let source = load canonic canonic canonic in
-          let prog = parse canonic source in
-          process_imports prog;
-          let Types.ExT(aks, t), _, fprog = Elab.elab !env prog in
-          env := Env.add_val canonic t (Env.add_typs aks !env);
-          if not !no_run_flag then
-            if !run_f_flag then
-              let closed_prog =
-                List.fold_right (fun (x, t, e1) e2 -> Fomega.LetE(e1, x, e2))
-                  !f_state fprog in
-              let e = Fomega.norm_exp closed_prog in
-              f_state :=
-                !f_state @ [(canonic, Erase.erase_typ t, Fomega.TupE (unpack e))]
-            else
-              let lambda = Compile.compile (Erase.erase_env !env) fprog in
-              let value = Lambda.eval !state lambda in
-              state := Lambda.Env.add canonic value !state
+          match !no_run_flag, source with
+          | true, Sealed (_, sig_source) ->
+            let typ = parse_sig canonic sig_source in
+            let prog' = let open Source in Syntax.TypE(typ)@@nowhere_region in
+            process_imports prog';
+            let Types.ExT(aks, t) = Elab.elab_sig !env typ in
+            env := Env.add_val canonic t (Env.add_typs aks !env);
+          | _ ->
+            let prog = parse canonic source in
+            process_imports prog;
+            let Types.ExT(aks, t), _, fprog = Elab.elab !env prog in
+            env := Env.add_val canonic t (Env.add_typs aks !env);
+            if not !no_run_flag then
+              if !run_f_flag then
+                let closed_prog =
+                  List.fold_right (fun (x, t, e1) e2 -> Fomega.LetE(e1, x, e2))
+                    !f_state fprog in
+                let e = Fomega.norm_exp closed_prog in
+                f_state :=
+                  !f_state @ [(canonic, Erase.erase_typ t, Fomega.TupE (unpack e))]
+              else
+                let lambda = Compile.compile (Erase.erase_env !env) fprog in
+                let value = Lambda.eval !state lambda in
+                state := Lambda.Env.add canonic value !state
         );
         loop paths in
   Syntax.imports_exp prog |> loop

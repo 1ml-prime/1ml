@@ -5,6 +5,7 @@
 (* Elaboration *)
 
 val elab : Env.env -> Syntax.exp -> Types.extyp * Types.eff * Fomega.exp
+val elab_sig : Env.env -> Syntax.typ -> Types.extyp
 
 
 (* Flags *)
