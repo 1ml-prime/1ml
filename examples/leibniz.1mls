@@ -1,0 +1,10 @@
+type t a b
+
+type a ~ b = t a b
+
+id 'a: a ~ a                           ;; Reflexivity
+(<<) 'a 'b 'c: b ~ c -> a ~ b -> a ~ c ;; Transitivity
+invert 'a 'b: a ~ b -> b ~ a           ;; Symmetry
+
+to   'a 'b: a ~ b -> a -> b
+from 'a 'b: a ~ b -> b -> a

@@ -1,0 +1,10 @@
+local import "prelude"
+
+type t a b = wrap (type p _) -> p a -> p b
+
+id (type p _) = Fun.id
+((bc: t _ _) << (ab: t _ _)) (type p _) x = bc p (ab p x)
+invert (eq: t _ _) (type p _) = eq (type fun b => wrap p b -> p _) Fun.id
+
+to (eq: t _ _) = eq (type fun x => x)
+from eq = to (invert eq)
