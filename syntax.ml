@@ -335,6 +335,13 @@ let rollP(p, t2) =
    annot = Some t2}
 
 
+(* *)
+
+let seqDs = function
+  | [] -> EmptyD
+  | d::ds -> (List.fold_left (fun s d -> seqD(s, d)@@d.at) d ds).it
+
+
 (* String conversion *)
 
 let node label = function

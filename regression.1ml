@@ -54,9 +54,9 @@ Equivalence: {
 
 ;;
 
-type MONOID = {type t, empty: t, (++): t -> t ~> t}
+type MONOID = {type t, empty: t, ++ : t -> t ~> t}
 cat (M: MONOID) = List.foldl M.++ M.empty
-do assert (cat {empty = 0, (++) = (+)} (40 :: (2 :: nil)) == 42)
+do assert (cat {empty = 0, ++ = (+)} (40 :: (2 :: nil)) == 42)
 
 Poly: {type t} = {} ;; Poly 'x = {type t = x}
 do 1: Poly.t
@@ -266,7 +266,7 @@ Alt = Alt : {
   ...(= Alt)
   type a | b = alt a b
 }
-(|) = Alt.|
+| = Alt.|
 
 type AnAlt = {x: int} | {y: bool}
 
@@ -318,8 +318,8 @@ N :> {
 
 ListN = let
   type I (type x) (type p _) (type t _ _) = {
-    nil     :               p N.Z
-    (::) 'n : x ~> t x n ~> p (N.S n)
+    nil   :               p N.Z
+    :: 'n : x ~> t x n ~> p (N.S n)
   }
 in {
   ...rec {type t _ _} => {type t x n = wrap (type p _) -> I x p t ~> p n}
@@ -334,8 +334,8 @@ in {
 
   case 'x 'n: (type p _) -> I x p t -> t x n ~> p n
 
-  nil  'x    :               t x N.Z
-  (::) 'x 'n : x -> t x n -> t x (N.S n)
+  nil 'x    :               t x N.Z
+  ::  'x 'n : x -> t x n -> t x (N.S n)
 }
 
 ListN = {

@@ -60,9 +60,9 @@ type EQ = {
 type MAP = {
   type key
   type map a
-  empty (a : type) : map a
-  add (a : type) : key -> a -> map a ~> map a
-  lookup (a : type) : key -> map a ~> opt a
+  empty : (a : type) -> map a
+  add : (a : type) -> key -> a -> map a ~> map a
+  lookup : (a : type) -> key -> map a ~> opt a
 }
 
 Map (Key : EQ) :> MAP with (type key = Key.t) = {
@@ -101,8 +101,8 @@ entries (c : type) (C : COLL c) (xs : c) : list (C.key, C.val) =
   List.map (C.keys xs) (fun (k : C.key) => (k, caseopt (C.lookup xs k) bot id))
 
 type MONAD (m : type -> type) = {
-  return (a : type) : a ~> m a
-  bind (a : type) (b : type) : m a -> (a ~> m b) ~> m b
+  return : (a : type) -> a ~> m a
+  bind : (a : type) -> (b : type) -> m a -> (a ~> m b) ~> m b
 }
 map (a : type) (b : type) (m : type -> type) (M : MONAD m) (f : a ~> b) (mx : m a) =
   M.bind a b mx (fun (x : a) => M.return b (f x))  ;; : m b

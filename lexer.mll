@@ -253,7 +253,7 @@ let escape = ['n''t''\\''\'''\"']
 let character = [^'"''\\''\n'] | '\\'escape
 
 let num = digit+
-let name = (letter | '_') (letter | digit | '_' | tick)*
+let word = (letter | '_') (letter | digit | '_' | tick)*
 let text = '"'character*'"'
 let char = '\''character '\''
 
@@ -298,7 +298,7 @@ rule token = parse
   | "}" { RBRACE }
   | "," { COMMA }
   | ";" { SEMI }
-  | name as s { NAME s }
+  | word as s { WORD s }
   | symbol* as s { SYM s }
   | num as s { NUM (convert_num s) }
   | char as s { CHAR (convert_char s) }

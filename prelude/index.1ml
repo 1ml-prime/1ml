@@ -58,7 +58,7 @@ List = {
   ...rec {type t _} => {type t x = Opt.t (x, t x)}
   nil = Opt.none
   hd :: tl = Opt.some (hd, tl)
-  case {nil, (::)} = Opt.case {
+  case {nil, ::} = Opt.case {
     none = nil
     some (hd, tl) = hd :: tl
   }
@@ -66,9 +66,9 @@ List = {
 
 {either, inl, inr, plus} = Alt
 {false, not, true} = Bool
-{(<<), (<|), (>>), (|>), bot, const, curry, flip, id, uncurry} = Fun
-{(%), (*), (+), (-), (/), (<), (<=), (<>), (==), (>), (>=)} = Int
-{(::), nil} = List
+{<<, <|, >>, |>, bot, const, curry, flip, id, uncurry} = Fun
+{%, *, +, -, /, <, <=, <>, ==, >, >=} = Int
+{::, nil} = List
 {none, some} = Opt
 {cross, fork, fst, snd} = Pair
-{(++), print} = Text
+{++, print} = Text

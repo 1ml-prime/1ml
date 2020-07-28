@@ -42,7 +42,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 
 %token EOF
 
-%token<string> NAME
+%token<string> WORD
 %token<string> SYM
 %token<string> TEXT
 %token<char> CHAR
@@ -54,36 +54,80 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 
 %%
 
-label :
-  | name
-    { $1 }
-  | sym
-    { $1 }
-  | NUM
-    { index($1)@@at() }
+word :
+  | WORD
+    { $1@@at() }
 ;
+
+hole :
+  | HOLE
+    { "_"@@at() }
+;
+
 sym :
   | SYM
     { $1@@at() }
 ;
-name :
-  | NAME
-    { $1@@at() }
+psym :
   | LPAR sym RPAR
     { $2 }
 ;
-namelist :
-  | name
-    { $1::[] }
-  | name DOT namelist
-    { $1::$3 }
+
+pname :
+  | word
+    { $1 }
+  | psym
+    { $1 }
+;
+
+name :
+  | word
+    { $1 }
+  | psym
+    { $1 }
+  | sym
+    { $1 }
+;
+
+phead :
+  | word
+    { $1 }
+  | psym
+    { $1 }
+  | hole
+    { $1 }
 ;
 
 head :
+  | word
+    { $1 }
+  | psym
+    { $1 }
+  | hole
+    { $1 }
+  | sym
+    { $1 }
+;
+
+names :
+  | name
+    { [$1] }
+  | name names
+    { $1::$2 }
+;
+
+label :
   | name
     { $1 }
-  | HOLE
-    { "_"@@at() }
+  | NUM
+    { index($1)@@at() }
+;
+
+path :
+  | label
+    { $1::[] }
+  | label DOT path
+    { $1::$3 }
 ;
 
 infixtyp :
@@ -95,20 +139,20 @@ infixtyp :
 typdec :
   | infixtyp
     { $1 }
-  | TYPE name typparamlist
+  | TYPE pname typparamlist
     { ($2, $3) }
 ;
 typpat :
   | infixtyp
     { $1 }
-  | TYPE head typparamlist
+  | TYPE phead typparamlist
     { ($2, $3) }
 ;
 
 implparam :
   | TICK LPAR head COLON TYPE RPAR
     { (headB($3)@@ati 3, TypT@@ati 5, Impl@@ati 1)@@at() }
-  | TICK LPAR TYPE head RPAR
+  | TICK LPAR TYPE phead RPAR
     { (headB($4)@@ati 4, TypT@@ati 3, Impl@@ati 1)@@at() }
   | TICK head
     { (headB($2)@@ati 2, TypT@@ati 1, Impl@@ati 1)@@at() }
@@ -185,9 +229,9 @@ attyp :
 withtyp :
   | infpathexp
     { pathT($1)@@at() }
-  | withtyp WITH LPAR namelist typparamlist EQUAL exp RPAR
+  | withtyp WITH LPAR path typparamlist EQUAL exp RPAR
     { WithT($1, $4, funE($5, $7)@@span[ati 5; ati 7])@@at() }
-  | withtyp WITH LPAR TYPE namelist typparamlist EQUAL typ RPAR
+  | withtyp WITH LPAR TYPE path typparamlist EQUAL typ RPAR
     { WithT($1, $5, funE($6, typE($8)@@ati 8)@@span[ati 6; ati 8])@@at() }
 ;
 typ :
@@ -228,13 +272,22 @@ opttypdef :
 ;
 
 atdec :
-  | name typparamlist COLON typ
-    { VarD($1, funT($2, $4, Pure@@ati 2)@@span[ati 2; ati 4])@@at() }
-  | name typparamlist EQUAL exp
-    { VarD($1, funT($2, EqT($4)@@ati 4, Pure@@ati 3)@@span[ati 2; ati 4])
-        @@at() }
-  | name
-    { VarD($1, funT([], EqT(VarE($1)@@ati 1)@@ati 1, Pure@@ati 1)@@ati 1)@@at() }
+  | names implparamlist COLON typ
+    { let r = span[ati 2; ati 4] in
+      let v = var "t" @@r in
+      let t = pathT(VarE(v)@@r)@@r in
+      letD(VarB(v, typE(funT($2, $4, Pure@@ati 2)@@r)@@r)@@r,
+        ($1 |> List.map (fun n -> VarD(n, t)@@at()) |> seqDs)@@at())@@at() }
+  | names implparamlist EQUAL exp
+    { let r = span[ati 2; ati 4] in
+      let v = var "t" @@r in
+      let t = pathT(VarE(v)@@r)@@r in
+      letD(VarB(v, typE(funT($2, EqT($4)@@ati 4, Pure@@ati 3)@@r)@@r)@@r,
+        ($1 |> List.map (fun n -> VarD(n, t)@@at()) |> seqDs)@@at())@@at() }
+  | names
+    { ($1
+        |> List.map (fun n -> VarD(n, EqT(VarE(n)@@n.at)@@n.at)@@n.at)
+        |> seqDs)@@at() }
   | typdec optannot opttypdef
     { VarD(fst $1,
         funT(snd $1,
@@ -272,7 +325,7 @@ dotpathexp :
     { DotE($1, $3)@@at() }
 ;
 atpathexp :
-  | name
+  | pname
     { VarE($1)@@at() }
   | HOLE
     { typE(HoleT@@at())@@at() }
@@ -307,10 +360,8 @@ dotexp :
     { DotE($1, $3)@@at() }
 ;
 atexp :
-  | name
-    { VarE($1)@@at() }
-  | HOLE
-    { typE(HoleT@@at())@@at() }
+  | atpathexp
+    { $1 }
   | PRIMITIVE TEXT
     { match Prim.fun_of_string $2 with
       | Some f -> PrimE(Prim.FunV f)@@at()
@@ -395,7 +446,7 @@ explist :
 ;
 
 funbind :
-  | head param paramlist
+  | phead param paramlist
     { ($1, $2::$3) }
   | oneexplparam sym oneexplparam
     { ($2, $1 @ $3) }
@@ -437,7 +488,7 @@ bindanns_opt :
 atbind :
   | funbind bindanns_opt EQUAL exp
     { let (h, ps) = $1 in VarB(h, funE(ps, $2($4))@@at())@@at() }
-  | atpat bindanns_opt EQUAL exp
+  | bindpat bindanns_opt EQUAL exp
     { patB($1, $2($4))@@at() }
   | name
     { VarB($1, VarE($1.it@@at())@@at())@@at() }
@@ -469,8 +520,15 @@ bind :
     { letB($2, $4)@@at() }
 ;
 
+bindpat :
+  | atpat
+    { $1 }
+  | sym
+    { headP $1@@at() }
+;
+
 atpat :
-  | head
+  | phead
     { headP $1@@at() }
   | LBRACE decon RBRACE
     { strP($2, at())@@at() }
@@ -515,20 +573,21 @@ patlist :
 ;
 
 atdecon :
-  | name optannot EQUAL pat
-    { ($1, opt annotP($4, $2)@@span[ati 2; ati 4])@@at() }
-  | name optannot
-    { ($1, opt annotP(varP($1)@@ati 1, $2)@@at())@@at() }
-  | name typparam typparamlist COLON typ
-    { ($1, annotP(varP($1)@@$1.at,
-       funT($2::$3, $5, Pure@@at())@@at())@@at())@@at() }
+  | names optannot EQUAL pat
+    { let p = opt annotP($4, $2)@@span[ati 2; ati 4] in
+      $1 |> List.map (fun n -> (n, p)@@at()) }
+  | names optannot
+    { $1 |> List.map (fun n -> (n, opt annotP(varP(n)@@n.at, $2)@@at())@@at()) }
+  | names implparam implparamlist COLON typ
+    { let t = funT($2::$3, $5, Pure@@at())@@at() in
+      $1 |> List.map (fun n -> (n, annotP(varP(n)@@n.at, t)@@at())@@at()) }
   | typdec optannot
     { let (n, tps) = $1 in
-      (n,
-       annotP(varP(n)@@n.at,
-         funT(tps,
-           Lib.Option.value $2 ~default:(TypT@@at()),
-           Pure@@at())@@at())@@at())@@at() }
+      [(n,
+        annotP(varP(n)@@n.at,
+          funT(tps,
+            Lib.Option.value $2 ~default:(TypT@@at()),
+            Pure@@at())@@at())@@at())@@at()] }
 /*
   | LPAR decon RPAR
     { $2 }
@@ -538,9 +597,9 @@ decon :
   |
     { [] }
   | atdecon
-    { [$1] }
+    { $1 }
   | atdecon COMMA decon
-    { $1::$3 }
+    { $1@$3 }
 ;
 
 prog :
