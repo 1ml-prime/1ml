@@ -38,7 +38,7 @@ GADTs = {
 AssociatedTypes = {
   type EQ = {
     type t
-    (==): t -> t -> bool
+    == : t -> t -> bool
   }
 
   type COLLECTS = {

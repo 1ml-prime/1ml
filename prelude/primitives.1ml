@@ -2,8 +2,8 @@ local
   pbo (p: _ -> _) l r = p (l, r)
 
   PolyEq (type t) = {
-    (==) = pbo (primitive "==" t)
-    (<>) = pbo (primitive "<>" t)
+    == = pbo (primitive "==" t)
+    <> = pbo (primitive "<>" t)
   }
 
 type bool = primitive "bool"
@@ -29,26 +29,26 @@ System = {
 }
 
 Int = {
-  (+) = pbo primitive "Int.+"
-  (-) = pbo primitive "Int.-"
-  (*) = pbo primitive "Int.*"
-  (/) = pbo primitive "Int./"
-  (%) = pbo primitive "Int.%"
-  (<) = pbo primitive "Int.<"
-  (>) = pbo primitive "Int.>"
-  (<=) = pbo primitive "Int.<="
-  (>=) = pbo primitive "Int.>="
+  + = pbo primitive "Int.+"
+  - = pbo primitive "Int.-"
+  * = pbo primitive "Int.*"
+  / = pbo primitive "Int./"
+  % = pbo primitive "Int.%"
+  < = pbo primitive "Int.<"
+  > = pbo primitive "Int.>"
+  <= = pbo primitive "Int.<="
+  >= = pbo primitive "Int.>="
   toText = primitive "Int.toText"
   print = primitive "Int.print"
   ...PolyEq int
 }
 
 Text = {
-  (++) = pbo primitive "Text.++"
-  (<) = pbo primitive "Text.<"
-  (>) = pbo primitive "Text.>"
-  (<=) = pbo primitive "Text.<="
-  (>=) = pbo primitive "Text.>="
+  ++ = pbo primitive "Text.++"
+  < = pbo primitive "Text.<"
+  > = pbo primitive "Text.>"
+  <= = pbo primitive "Text.<="
+  >= = pbo primitive "Text.>="
   length = primitive "Text.length"
   sub = pbo primitive "Text.sub"
   fromChar = primitive "Text.fromChar"

@@ -28,8 +28,8 @@ TypeLevel: {
 
     not: t -> t
 
-    (&&&): t -> t -> t
-    (|||): t -> t -> t
+    &&& : t -> t -> t
+    ||| : t -> t -> t
 
     equals: t -> t -> t
   }
@@ -56,15 +56,15 @@ TypeLevel: {
 
     succ: t -> t
 
-    (+): t -> t -> t
-    (*): t -> t -> t
+    + : t -> t -> t
+    * : t -> t -> t
   }
 
   List: {
     type t = type -> (type _ _ _) -> type
 
     nil: t
-    (::): type -> t -> t
+    :: : type -> t -> t
 
     map: (type _ _) -> t -> t
 

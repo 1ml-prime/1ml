@@ -32,9 +32,9 @@ type EQ = {
 type MAP = {
   type key
   type map a
-  empty a : map a
-  lookup a : key -> map a ~> opt a
-  add a : key -> a -> map a ~> map a
+  empty : (a : type) -> map a
+  lookup : (a : type) -> key -> map a ~> opt a
+  add : (a : type) -> key -> a -> map a ~> map a
 }
 
 Map (Key : EQ) :> MAP with (type key = Key.t) = {

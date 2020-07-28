@@ -6,7 +6,7 @@ List = import "./list"
 
 type ORD = {
   type t
-  (<=) : t -> t ~> Bool.t
+  <= : t -> t ~> Bool.t
 }
 
 type SET = {
