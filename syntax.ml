@@ -64,11 +64,16 @@ and bind' =
   | TypeErrorB of exp
 
 
-let var_counts = ref []
-let var s =
-  let count = try List.assoc s !var_counts with Not_found ->
-    let count = ref 0 in var_counts := (s, count) :: !var_counts; count
-  in incr count; s ^ "$" ^ string_of_int !count
+let uniq_count = ref 0
+let uniq_var () = incr uniq_count; "%_" ^ string_of_int !uniq_count
+let is_uniq n = Lib.String.is_prefix "%_" n.it
+let rec every_var pr b =
+  match b.it with
+  | EmptyB -> true
+  | SeqB(b1, b2) -> every_var pr b1 && every_var pr b2
+  | VarB(v, _) -> pr v
+  | InclB(_) -> false
+  | TypeErrorB(_) -> true
 
 let index n = "_" ^ string_of_int n
 
@@ -119,23 +124,44 @@ let pathT(e) =
   | TypE(t) -> t.it
   | _ -> PathT(e)
 
+let inclD(t) =
+  match t.it with
+  | StrT(d) -> d.it
+  | _ -> InclD(t)
+
+let inclB(e) =
+  match e.it with
+  | StrE(b) -> b.it
+  | _ -> InclB(e)
+
+let dotE(e, l) =
+  match e.it with
+  | StrE({it = VarB(x, e)}) when x.it = l.it -> e.it
+  | _ -> DotE(e, l)
+
 (* Sugar *)
 
-let letE(b, e) =
-  let x' = var "let" in
-  let b2 = VarB(x'@@e.at, e)@@e.at in
-  DotE(strE(seqB(b, b2)@@span[b.at; e.at])@@span[b.at; e.at], x'@@e.at)
-
-let asVarE(e, n, k) =
+let asVarB(e, pr) =
   match e.it with
-  | VarE(x) -> (k x).it
+  | VarE(x) -> EmptyB@@e.at, x
+  | DotE({it=StrE(b)}, l) when pr b ->
+    b, l
   | _ ->
-    let x = var n@@e.at in
-    letE(VarB(x, e)@@e.at, k x)
+    let x = uniq_var()@@e.at in
+    VarB(x, e)@@e.at, x
 
-let letT(b, t) = PathT(letE(b, typE(t)@@t.at)@@span[b.at; t.at])
-let letD(b, d) = InclD(letT(b, StrT(d)@@d.at)@@span[b.at; d.at])
-let letB(b, b') = InclB(letE(b, strE(b')@@b'.at)@@span[b.at; b'.at])
+let letE(b1, e) =
+  let b2, x = asVarB(e, fun _ -> true) in
+  let r = span[b1.at; b2.at] in
+  dotE(strE(seqB(b1, b2)@@r)@@r, x)
+
+let asVarE(e, k) =
+  let b, x = asVarB(e, every_var is_uniq) in
+  letE(b, k x)
+
+let letT(b, t) = pathT(letE(b, typE(t)@@t.at)@@span[b.at; t.at])
+let letD(b, d) = inclD(letT(b, strT(d)@@d.at)@@span[b.at; d.at])
+let letB(b, b') = inclB(letE(b, strE(b')@@b'.at)@@span[b.at; b'.at])
 
 let rec tupT(ts) = strT(tupT' 1 ts)
 and tupT' n = function
@@ -181,14 +207,15 @@ and funE'(ps, e) =
       | _ -> "$"@@p.at, letE(b, e')@@span[p.at; e.at]
     in FunE(x, t, e'', i)@@span[p.at; e.at]
 
-let doB(e) = letB(VarB("_"@@e.at, e)@@e.at, EmptyB@@e.at)
+let doB(e) =
+  let b, _ = asVarB(e, fun _ -> true) in
+  letB(b, EmptyB@@e.at)
 
-let seqE(l, r) =
-  letE(VarB("_"@@l.at, l)@@l.at, r)
+let seqE(l, r) = asVarE(l, fun _ -> r)
 
 let ifE(e1, e2, e3) =
   let at = span[e1.at; e3.at] in
-  let ifE = asVarE(e1, "if", fun x -> IfE(x, e2, e3)@@at) in
+  let ifE = asVarE(e1, fun x -> IfE(x, e2, e3)@@at) in
   match e3.it with
   | AnnotE(_, t) -> AnnotE(ifE@@at, t)
   | _ -> ifE
@@ -199,21 +226,21 @@ let andE(e1, e2) =
   ifE(e1, e2, PrimE(Prim.BoolV(false))@@e1.at)
 
 let appE(e1, e2) =
-  asVarE(e1, "app1", fun x1 ->
-  asVarE(e2, "app2", fun x2 ->
+  asVarE(e1, fun x1 ->
+  asVarE(e2, fun x2 ->
   AppE(x1, x2)@@span[e1.at; e2.at])@@span[e1.at; e2.at])
 
 let wrapE(e, t) =
-  asVarE(e, "wrap", fun x -> WrapE(x, t)@@span[e.at; t.at])
+  asVarE(e, fun x -> WrapE(x, t)@@span[e.at; t.at])
 
 let unwrapE(e, t) =
-  asVarE(e, "unwrap", fun x -> UnwrapE(x, t)@@span[e.at; t.at])
+  asVarE(e, fun x -> UnwrapE(x, t)@@span[e.at; t.at])
 
 let rollE(e, t) =
-  asVarE(e, "roll", fun x -> RollE(x, t)@@span[e.at; t.at])
+  asVarE(e, fun x -> RollE(x, t)@@span[e.at; t.at])
 
 let unrollE(e, t) =
-  asVarE(e, "unroll", fun x -> UnrollE(x, t)@@span[e.at; t.at])
+  asVarE(e, fun x -> UnrollE(x, t)@@span[e.at; t.at])
 
 let annotE(e, t) = AnnotE(e, t)
 
@@ -258,7 +285,7 @@ let patB(p, e) =
   match p.it.infer with
   | None -> b
   | Some t ->
-    letB(VarB("_"@@p.at, annotE(e, t)@@span[e.at; t.at])@@p.at, b@@p.at)
+    letB(VarB(uniq_var()@@p.at, annotE(e, t)@@span[e.at; t.at])@@p.at, b@@p.at)
 
 let asTopt(to1, to2) =
   match to1, to2 with

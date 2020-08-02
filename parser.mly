@@ -299,9 +299,9 @@ atdec :
              EqT(annotE(te3, t2)@@span[ati 2; ati 3])@@span[ati 2; ati 3]),
           Pure@@at())@@at())@@at() }
   | ELLIPSIS typ
-    { InclD($2)@@at() }
+    { inclD($2)@@at() }
   | LET bind IN typ
-    { InclD(letT($2, $4)@@at())@@at() }
+    { inclD(letT($2, $4)@@at())@@at() }
 /*
   | LPAR dec RPAR
     { $2 }
@@ -322,7 +322,7 @@ dotpathexp :
   | atpathexp
     { $1 }
   | dotpathexp DOT label
-    { DotE($1, $3)@@at() }
+    { dotE($1, $3)@@at() }
 ;
 atpathexp :
   | pname
@@ -357,7 +357,7 @@ dotexp :
   | atexp
     { $1 }
   | dotexp DOT label
-    { DotE($1, $3)@@at() }
+    { dotE($1, $3)@@at() }
 ;
 atexp :
   | atpathexp
@@ -495,13 +495,13 @@ atbind :
   | typpat bindanns_opt typdef
     { VarB(fst $1, funE(snd $1, $2($3))@@at())@@at() }
   | ELLIPSIS exp
-    { InclB($2)@@at() }
+    { inclB($2)@@at() }
   | DO exp
     { doB($2)@@at() }
   | TYPE_ERROR exp
     { TypeErrorB($2)@@at() }
   | LET bind IN exp
-    { InclB(letE($2, $4)@@at())@@at() }
+    { inclB(letE($2, $4)@@at())@@at() }
   | IMPORT TEXT
     { InclB(ImportE($2@@ati 2)@@at())@@at() }
 /*

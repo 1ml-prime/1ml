@@ -608,8 +608,9 @@ Trace.debug (lazy ("[RecT] t = " ^ string_of_norm_typ t));
   | EL.AnnotE(e, t) ->
     let exp =
       let open Syntax in
-      let x' = var "annot" in
-      appE(FunE(x'@@t.at, t, VarE(x'@@t.at)@@t.at, Expl@@t.at)@@span[e.at; t.at], e)@@exp.at in
+      let x' = uniq_var()@@t.at in
+      appE(FunE(x', t, VarE(x')@@t.at, Expl@@t.at)@@span[e.at; t.at], e)@@exp.at
+    in
     elab_exp env exp l
 
 (*
