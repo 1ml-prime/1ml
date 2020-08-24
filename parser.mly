@@ -29,7 +29,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %token FUN REC LET IN DO WRAP TYPE ELLIPSIS
 %token IF THEN ELSE LOGICAL_OR LOGICAL_AND AS
 %token EQUAL COLON SEAL ARROW SARROW DARROW
-%token WITH
+%token AMP
 %token LPAR RPAR
 %token LBRACE RBRACE
 %token DOT TICK
@@ -121,13 +121,6 @@ label :
     { $1 }
   | NUM
     { index($1)@@at() }
-;
-
-path :
-  | label
-    { $1::[] }
-  | label DOT path
-    { $1::$3 }
 ;
 
 infixtyp :
@@ -226,20 +219,18 @@ attyp :
   | LPAR EQUAL exp RPAR
     { EqT($3)@@at() }
 ;
-withtyp :
+andtyp :
   | infpathexp
     { pathT($1)@@at() }
-  | withtyp WITH LPAR path typparamlist EQUAL exp RPAR
-    { WithT($1, $4, funE($5, $7)@@span[ati 5; ati 7])@@at() }
-  | withtyp WITH LPAR TYPE path typparamlist typdef RPAR
-    { WithT($1, $5, funE($6, $7)@@span[ati 6; ati 7])@@at() }
+  | infpathexp AMP andtyp
+    { AndT(pathT($1)@@ati 1, $3)@@at() }
 ;
 typ :
-  | withtyp
+  | andtyp
     { $1 }
   | annparam arrow typ
     { funT([$1], $3, $2)@@at() }
-  | withtyp arrow typ
+  | andtyp arrow typ
     { funT([(headB("_"@@ati 1)@@ati 1, $1, Expl@@ati 2)@@ati 1], $3, $2)@@at() }
   | WRAP typ
     { WrapT($2)@@at() }

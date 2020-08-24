@@ -111,12 +111,53 @@ let intersect_row r1 r2 =
 let diff_row r1 r2 =
   List.filter (fun (l1, _) -> List.for_all (fun (l2, _) -> l1 <> l2) r2) r1
 
-let rec project_typ ls t =
-  match ls, t with
-  | [], _ -> t
-  | l::ls', StrT(tr) -> project_typ ls' (List.assoc l tr)
-  | _ -> raise Not_found
+let rec intersect_typs t1 t2 =
+  match t1, t2 with
+  | StrT(r1), StrT(r2) ->
+    StrT(intersect_row r1 r2
+         |> List.map (fun (l, t1) ->
+                (l, intersect_typs t1 (List.assoc l r2))))
+  | _ ->
+    t1
 
+let rec has_typs = function
+  | VarT(_) -> false
+  | PrimT(_) -> false
+  | StrT(tr) -> List.exists (fun (_, t) -> has_typs t) tr
+  | FunT(aks, td, ExT(_, tr), e) ->
+    (match e with
+     | Implicit | Explicit Pure ->
+       has_typs tr
+     | Explicit Impure -> false)
+  | TypT(ExT(_, p)) -> true
+  | WrapT(_) -> false
+  | LamT(_) -> false
+  | AppT(_) -> false
+  | TupT(_) -> false
+  | DotT(_) -> false
+  | RecT(_) -> false
+  | InferT(_) -> false
+
+let rec merge_typs t1 t2 =
+  match t1, t2 with
+  | StrT(r1), StrT(r2) ->
+    let ls = List.map fst r1 @
+      List.filter (fun l -> not (List.mem_assoc l r1)) (List.map fst r2) in
+    let merge kind =
+      ls
+      |> List.filter (fun l ->
+          List.mem_assoc l r1 && kind (List.assoc l r1) ||
+          List.mem_assoc l r2 && kind (List.assoc l r2))
+      |> List.map (fun l ->
+          if List.mem_assoc l r1 && List.mem_assoc l r2 then
+            (l, merge_typs (List.assoc l r1) (List.assoc l r2))
+          else if List.mem_assoc l r2 then
+            (l, List.assoc l r2)
+          else
+            (l, List.assoc l r1)) in
+    StrT(merge has_typs @ merge (fun t -> not (has_typs t)))
+  | _ ->
+    t2
 
 (* Size check *)
 

@@ -28,7 +28,7 @@ and typ' =
   | WrapT of typ
   | EqT of exp
   | AsT of typ * typ
-  | WithT of typ * var list * exp
+  | AndT of typ * typ
 
 and dec = (dec', unit) phrase
 and dec' =
@@ -386,7 +386,7 @@ let label_of_typ t =
   | WrapT _ -> "WrapT"
   | EqT _ -> "EqT"
   | AsT _ -> "AsT"
-  | WithT _ -> "WithT"
+  | AndT _ -> "AndT"
 
 let label_of_dec d =
   match d.it with
@@ -441,8 +441,8 @@ let rec string_of_typ t =
   | WrapT(t) -> node' [string_of_typ t]
   | EqT(e) -> node' [string_of_exp e]
   | AsT(t1, t2) -> node' [string_of_typ t1; string_of_typ t2]
-  | WithT(t, xs, e) ->
-    node' ([string_of_typ t] @ List.map string_of_var xs @ [string_of_exp e])
+  | AndT(t1, t2) ->
+    node' [string_of_typ t1; string_of_typ t2]
 
 and string_of_dec d =
   let node' = node (label_of_dec d) in
@@ -495,7 +495,7 @@ let rec imports_typ typ =
   | WrapT typ -> imports_typ typ
   | EqT exp -> imports_exp exp
   | AsT(typ1, typ2) -> imports_typ typ1 @ imports_typ typ2
-  | WithT(typ, _, exp) -> imports_typ typ @ imports_exp exp
+  | AndT(typ1, typ2) -> imports_typ typ1 @ imports_typ typ2
 
 and imports_dec dec =
   match dec.it with

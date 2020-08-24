@@ -98,6 +98,7 @@ module Offside = struct
 
   let slack_of token =
     match token with
+    | AMP -> 2
     | SYM text -> String.length text + 1
     | _ -> 0
 
@@ -280,7 +281,7 @@ rule token = parse
   | "rec" { REC }
   | "then" { THEN }
   | "type" { TYPE }
-  | "with" { WITH }
+  | "&" { AMP }
   | "=" { EQUAL }
   | ":" { COLON }
   | ":>" { SEAL }

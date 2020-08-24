@@ -214,7 +214,7 @@ type SET = {
   card : set ~> int
 }
 
-Set (Elem : ORD) :> SET with (elem = Elem.t) = {
+Set (Elem : ORD) :> SET & {elem = Elem.t} = {
   type elem = Elem.t
   type set = (int, elem ~> bool)
   type t = set
@@ -237,7 +237,7 @@ type MAP = {
   lookup 'a : key -> map a ~> opt a
 }
 
-Map (Key : ORD) :> MAP with (key = Key.t) = {
+Map (Key : ORD) :> MAP & {key = Key.t} = {
   type key = Key.t
   type map a = key ~> opt a
   t = map

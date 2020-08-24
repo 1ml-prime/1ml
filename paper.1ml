@@ -65,7 +65,7 @@ type MAP = {
   lookup : (a : type) -> key -> map a ~> opt a
 }
 
-Map (Key : EQ) :> MAP with (type key = Key.t) = {
+Map (Key : EQ) :> MAP & {key = Key.t} = {
   type key = Key.t
   type map a = key ~> opt a
   empty (a : type) = fun (k : key) => none
@@ -141,7 +141,7 @@ joinM (M : MONAD) (a : type) (mm : M.t (M.t a)) : M.t a =
   M.bind (M.t a) a mm (fun (m : M.t a) => m)
 
 StackM (M : MONAD) =
-  rec (Loop : (n : int) ~> (MONAD_TRANS with (base = M.t))) =>
+  rec (Loop : (n : int) ~> (MONAD_TRANS & {base = M.t})) =>
   fun (n : int) =>
   if n == 1 then
     { ... M
@@ -162,7 +162,7 @@ StackM (M : MONAD) =
           (fun (mx : M.t a) => M.bind a b mx
             (fun (x : a) => f x))
     }
-  ) : MONAD_TRANS with (type base a = M.t a)
+  ) : MONAD_TRANS & {base = M.t}
 ;)
 
 ;; Predicativity
@@ -213,7 +213,7 @@ type MAP = {
   lookup 'a : key -> map a ~> opt a
   add 'a : key -> a -> map a ~> map a
 }
-Map (Key : EQ) :> MAP with (type key = Key.t) = {
+Map (Key : EQ) :> MAP & {key = Key.t} = {
   type key = Key.t
   type map a = key ~> opt a
   empty = fun x => none

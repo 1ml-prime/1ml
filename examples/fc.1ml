@@ -48,12 +48,14 @@ AssociatedTypes = {
     insert: Elem.t -> t ~> t
   }
 
-  CollectEq (Elem: EQ) :> COLLECTS with (Elem = Elem) = {
+  CollectEq (Elem: EQ) :> COLLECTS & {Elem} = {
+    Elem
     empty = List.nil
     insert = List.::
   }
 
-  BitSet :> COLLECTS with (Elem = Char) = {
+  BitSet :> COLLECTS & {Elem = Char} = {
+    Elem = Char
     empty = List.nil
     insert = List.::
   }

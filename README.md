@@ -90,7 +90,7 @@ T ::=
     (X : T) -> E            (pure function/functor/constructor type)
     '(X : T) -> E           (implicit function/functor/constructor type)
     (= E)                   (singleton/alias type)
-    T with .Xs = E          (type refinement)
+    T & T                   (type refinement)
     wrap T                  (impredicative wrapped type)
     _                       (type wildcard)
     T as T                  (layered type (both operands have to be equal))
@@ -153,8 +153,6 @@ T ::= ...
     T1 -> T2                        ~> (_ : T1) -> T2
     P ~> T                          ~> ($ : TP) ~> let P in T  [2]
     P -> T                          ~> ($ : TP) -> let P in T  [2]
-    T with .Xs A1 ... An = E        ~> T with .Xs = fun A1 ... An => E
-    T with type .Xs A1 ... An = T'  ~> T with .Xs = fun A1 ... An => type T'
     let B in T                      ~> (let B in type T)
     rec P => T                      ~> (rec P => type T)
 

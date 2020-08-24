@@ -25,12 +25,18 @@ val string_of_error : error -> string
 
 val sub_typ :
   Env.env -> Types.typ -> Types.typ -> Types.typ list ->
-    Types.typ list * Types.infer ref list * Fomega.exp (* raise Sub *)
+    (Types.typ * Types.typ) list * Types.infer ref list * Fomega.exp (* raise Sub *)
 val sub_extyp :
   Env.env -> Types.extyp -> Types.extyp -> Types.typ list ->
-    Types.typ list * Types.infer ref list * Fomega.exp (* raise Sub *)
+    (Types.typ * Types.typ) list * Types.infer ref list * Fomega.exp (* raise Sub *)
 
 val equal_typ :
   Env.env -> Types.typ -> Types.typ -> Types.infer ref list (* raise Sub *)
 val equal_extyp :
   Env.env -> Types.extyp -> Types.extyp -> Types.infer ref list (* raise Sub *)
+
+val subst_of_match: (Types.typ * Types.typ) list -> (Types.var * Types.typ) list
+
+(* String conversion *)
+
+val string_of_match: (Types.typ * Types.typ) list -> string

@@ -170,6 +170,31 @@ Monadic = {
 
 ;;
 
+ExpressiveLanguageOfSignatures = {
+  type T = {type t, type u, x: t}
+  type V = {type t, type u, x: u}
+
+  type_error { type L = T & V }
+
+  type L1 = T & V & {type t, u = t}
+  type L2 = T & V & {x 'a: a}
+}
+
+And = {
+  type Reveal = {type t, x: t} & {t = int}
+  type Nested = {Nested: {type t, v: t}, x: Nested.t} & {Nested: {t = int}}
+  type RevealWithPath = {type t, toText: t ~> text} & (= Int)
+
+  type RDS = {A: {type t}, B: {type t}}
+           & {A: {type t}, B: {v: A.t}}
+           & {B: {type t}, A: {v: B.t}}
+
+  do {A = {t = bool, v = 1}, B = {t = int, v = true}} :> RDS
+  do {A = {t = bool, v = 1}, B = {t = int, v = true}} :  RDS
+}
+
+;;
+
 hole_is_allowed_type_pattern (type _ _) = ()
 
 typparams_allowed (id 'a: a -> a) ({alsoId 'x: x -> x}) =

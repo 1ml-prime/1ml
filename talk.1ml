@@ -37,7 +37,7 @@ type MAP = {
   add : (a : type) -> key -> a -> map a ~> map a
 }
 
-Map (Key : EQ) :> MAP with (type key = Key.t) = {
+Map (Key : EQ) :> MAP & {key = Key.t} = {
   type key = Key.t
   type map a = key ~> opt a
   empty (a : type) = fun (x : key) => none
@@ -57,7 +57,7 @@ type MAP = {
   add 'a : key -> a -> map a ~> map a
 }
 
-Map (Key : EQ) :> MAP with (type key = Key.t) = {
+Map (Key : EQ) :> MAP & {key = Key.t} = {
   type key = Key.t
   type map a = key ~> opt a
   empty = fun x => none
