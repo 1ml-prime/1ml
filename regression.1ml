@@ -195,6 +195,12 @@ Both = {
   ({x, y = _} as {x = _, y}) = {x = 1, y = 2}
 }
 
+type_error {
+  cannot_infer_unwrap t = t #: _
+}
+
+type_error {cannot_infer_unroll t = t @: _}
+
 ;;
 
 type_error { type_error 101 }

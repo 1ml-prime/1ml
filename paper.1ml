@@ -266,7 +266,7 @@ type OPT = {
 }
 Opt :> OPT = {
   type opt a = wrap (b : type) -> b -> (a ~> b) ~> b
-  none 'a :# opt a = fun (b : type) (n : b) (s : a ~> b) => n
-  some 'a x :# opt a = fun (b : type) (n : b) (s : a ~> b) => s x
+  none 'a :# _ = fun (b : type) (n : b) (s : a ~> b) => n
+  some 'a x :# _ = fun (b : type) (n : b) (s : a ~> b) => s x
   caseopt 'a 'b (xo :# opt a) = xo b
 }

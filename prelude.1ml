@@ -112,8 +112,8 @@ type OPT = {
 }
 Opt :> OPT = {
   type opt a = wrap (b : type) -> (() ~> b) -> (a ~> b) ~> b
-  none 'a :# opt a = fun (b : type) (n : () ~> b) (s : a ~> b) => n ()
-  some 'a x :# opt a = fun (b : type) (n : () ~> b) (s : a ~> b) => s x
+  none 'a :# _ = fun (b : type) (n : () ~> b) (s : a ~> b) => n ()
+  some 'a x :# _ = fun (b : type) (n : () ~> b) (s : a ~> b) => s x
   caseopt (xo :# opt _) = xo _
 }
 ...Opt
@@ -129,9 +129,9 @@ type ALT = {
 }
 Alt :> ALT = {
   type alt a b = wrap (c : type) -> (a ~> c) -> (b ~> c) ~> c
-  left 'a 'b x :# alt a b =
+  left 'a 'b x :# _ =
     fun (c : type) (l : a ~> c) (r : b ~> c) => l x
-  right 'a 'b x :# alt a b =
+  right 'a 'b x :# _ =
     fun (c : type) (l : a ~> c) (r : b ~> c) => r x
   casealt (xy :# alt _ _) = xy _
 }
@@ -163,8 +163,8 @@ type LIST = {
 List :> LIST = {
   ...{
     type list a = wrap (b : type) -> b -> (a ~> b ~> b) ~> b
-    nil 'a :# list _ = fun (b : type) (n : b) (c : a ~> b ~> b) => n
-    cons x (xs :# list _) :# list _ =
+    nil 'a :# _ = fun (b : type) (n : b) (c : a ~> b ~> b) => n
+    cons x (xs :# list _) :# _ =
       fun (b : type) (n : b) (c : _ ~> b ~> b) =>
         c x (xs b n c)
     foldr (xs :# list _) = xs _

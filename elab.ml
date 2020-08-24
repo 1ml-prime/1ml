@@ -428,13 +428,18 @@ Trace.debug (lazy ("[FunE] env =" ^ VarSet.fold (fun a s -> s ^ " " ^ a) (domain
     IL.genE(erase_bind aks, IL.LamE(var.it, erase_typ t, e2))
 
   | EL.WrapE(var, typ) ->
+    let var_t = lookup_var env var in
     let s, zs1 =
       match elab_typ env typ "" with
       | ExT([], WrapT(s)), zs1 -> s, zs1
+      | ExT([], InferT(z)), zs1 ->
+        let s = ExT([], var_t) in
+        resolve_always z (WrapT(s));
+        s, zs1
       | _ -> error typ.at "non-wrapped type for wrap"
     in
     let _, zs2, f =
-      try sub_extyp env (ExT([], lookup_var env var)) s []
+      try sub_extyp env (ExT([], var_t)) s []
       with Sub e -> error exp.at
         ("wrapped type does not match annotation: " ^ Sub.string_of_error e)
     in
@@ -528,13 +533,20 @@ Trace.debug (lazy ("[AppE] ts = " ^ String.concat ", " (List.map string_of_norm_
     IL.AppE(IL.instE(ex1, List.map erase_typ ts), IL.AppE(f, IL.VarE(var2.it)))
 
   | EL.UnwrapE(var, typ) ->
+    let t1, zs1, ex = fully try_unroll avar (elab_instvar env var) in
     let aks, t, s2, zs2 =
       match elab_typ env typ l with
       | ExT([], WrapT(s2)), zs2 ->
         let ExT(aks, t) as s2 = freshen_extyp env s2 in
         aks, t, s2, zs2
+      | ExT([], InferT(z)), zs2 ->
+        (match t1 with
+         | WrapT(s2) ->
+           resolve_always z t1;
+           [], t1, s2, zs2
+         | _ ->
+           error typ.at "could not infer type for unwrap")
       | _ -> error typ.at "non-wrapped type for unwrap" in
-    let t1, zs1, ex = fully try_unroll avar (elab_instvar env var) in
     let s1 =
       match t1 with
       | WrapT(s1) -> s1
@@ -550,9 +562,16 @@ Trace.debug (lazy ("[UnwrapE] s2 = " ^ string_of_norm_extyp s2));
     IL.AppE(f, IL.DotE(ex, "wrap"))
 
   | EL.UnrollE(var, typ) ->
-    let s, zs1 = elab_typ env typ l in
-    let unroll_t, roll_t = rec_from_extyp typ "unrolling" s in
     let var_t = lookup_var env var in
+    let s, zs1 =
+      match elab_typ env typ l with
+      | ExT([], InferT(z)), zs1 ->
+        let s = ExT([], var_t) in
+        resolve_always z var_t;
+        s, zs1
+      | s, zs1 ->
+        s, zs1 in
+    let unroll_t, roll_t = rec_from_extyp typ "unrolling" s in
     let _, zs2, f = try sub_typ env var_t roll_t [] with Sub e ->
       error var.at ("unrolled value does not match annotation:"
                     ^ "  " ^ Types.string_of_typ var_t ^ " "
