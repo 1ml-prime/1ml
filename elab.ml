@@ -610,6 +610,7 @@ Trace.debug (lazy ("[RecT] t = " ^ string_of_norm_typ t));
       ExT([], t), Pure, lift_warn exp.at t env (zs1 @ zs2 @ zs3),
       IL.LetE(e, "_", materialize_typ t)
     )
+
   | EL.ImportE(path) ->
     (match Import.resolve (Source.at_file path) path.it with
     | None -> Source.error path.at ("\""^path.it^"\" does not resolve to a file")
@@ -623,6 +624,9 @@ Trace.debug (lazy ("[RecT] t = " ^ string_of_norm_typ t));
       appE(FunE(x', t, VarE(x')@@t.at, Expl@@t.at)@@span[e.at; t.at], e)@@exp.at
     in
     elab_exp env exp l
+
+  | EL.WithEnvE (toExp) ->
+    elab_exp env (toExp env) l
 
 (*
 rec (X : (b : type) => {type t; type u a}) fun (b : type) => {type t = (X int.u b, X bool.t); type u a = (a, X b.t)}

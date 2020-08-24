@@ -5,35 +5,13 @@ local import "prelude"
 ;;
 ;;   https://github.com/palladin/idris-snippets/blob/master/src/HOAS.idr
 
-let
-  type I (type case _) (type t _) = {
-    Val 'x       :                           x ~> case x
-    Bin 'x 'y 'z : (x ~> y ~> z) ~> t x ~> t y ~> case z
-    If  'x       :      t Bool.t ~> t x ~> t x ~> case x
-    App 'x 'y    :           t (x ~> y) ~> t x ~> case y
-    Lam 'x 'y    :                (t x ~> t y) ~> case (x ~> y)
-    Fix 'x 'y    :      t ((x ~> y) ~> x ~> y) ~> case (x ~> y)
-  }
-  type J (type t _) = {type case _, ...I case t}
-  type T (type t _) x = (c: J t) ~> c.case x
-  ...{
-    ...rec {type t _} => {type t x = wrap T t x}
-    case 'x (type case _) (cs: I case t) (e: t _) = e {case, ...cs}
-    mk (fn: T t _) = fn
-  } :> {
-    type t _
-    case 'x: (type case _) -> I case t -> t x ~> case x
-    mk 'x: T t x -> t x
-  }
-  J = J t
-in {
-  t, case
-  Val 'x                                   (v: x) = mk fun (e: J) => e.Val v
-  Bin 'x 'y 'z (f: x ~> y ~> z) (l: t x) (r: t y) = mk fun (e: J) => e.Bin f l r
-  If  'x          (b: t Bool.t) (c: t x) (a: t x) = mk fun (e: J) => e.If b c a
-  App 'x 'y              (f: t (x ~> y)) (a: t x) = mk fun (e: J) => e.App f a
-  Lam 'x 'y                       (f: t x ~> t y) = mk fun (e: J) => e.Lam f
-  Fix 'x 'y           (f: t ((x ~> y) ~> x ~> y)) = mk fun (e: J) => e.Fix f
+data case t _ :> {
+  Val 'x       :                           x ~> case x
+  Bin 'x 'y 'z : (x ~> y ~> z) ~> t x ~> t y ~> case z
+  If  'x       :      t Bool.t ~> t x ~> t x ~> case x
+  App 'x 'y    :           t (x ~> y) ~> t x ~> case y
+  Lam 'x 'y    :                (t x ~> t y) ~> case (x ~> y)
+  Fix 'x 'y    :      t ((x ~> y) ~> x ~> y) ~> case (x ~> y)
 }
 
 Fact = Fix <| Lam fun f => Lam fun x =>

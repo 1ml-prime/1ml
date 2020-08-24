@@ -4,8 +4,8 @@
 
 NAME = 1ml
 MODULES = \
-  lib source prim syntax parser lexer \
-  fomega types iL env erase trace sub import elab \
+  lib source prim fomega types env syntax \
+  parser lexer iL erase trace sub import elab \
   lambda compile \
   main
 NOMLI = syntax iL main import

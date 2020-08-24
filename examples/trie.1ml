@@ -1,25 +1,14 @@
 local import "prelude"
 
 FunctionalTrie = {
-  local
-    type I (type t _ _) = {
-      type case _ _
-      unit 'v         : opt v            ~> case {} v
-      alt  'v 'k1 'k2 : t k1 v ~> t k2 v ~> case (alt k1 k2) v
-      pair 'v 'k1 'k2 : t k1 (t k2 v)    ~> case (k1, k2) v
-    }
-    ...rec {type t _ _} => {type t k v = wrap (m: I t) ~> m.case k v}
-    I = I t
-
-  t
-  case (m: I) (e: t _ _) = e m
-  unit vO : t _ _ = fun (m: I) => m.unit vO
-  alt l r : t _ _ = fun (m: I) => m.alt l r
-  pair lr : t _ _ = fun (m: I) => m.pair lr
+  data case t _ _ :> {
+    unit 'v         : opt v            ~> case {} v
+    alt  'v 'k1 'k2 : t k1 v ~> t k2 v ~> case (alt k1 k2) v
+    pair 'v 'k1 'k2 : t k1 (t k2 v)    ~> case (k1, k2) v
+  }
 
   lookup = rec (lookup 'k 'v: t k v ~> k ~> opt v) =>
-    case {
-      type case k v = k ~> opt v
+    case (type fun k v => k ~> opt v) {
       unit m {} = m
       alt ta tb = Alt.case {inl = lookup ta, inr = lookup tb}
       pair ta (a, b) = lookup ta a |> Opt.case {none, some tb = lookup tb b}

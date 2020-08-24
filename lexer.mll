@@ -263,6 +263,7 @@ rule token = parse
   | "_" { HOLE }
   | "&&" { LOGICAL_AND }
   | "as" { AS }
+  | "data" { DATA }
   | "do" { DO }
   | "else" { ELSE }
   | "type_check" { TYPE_CHECK }

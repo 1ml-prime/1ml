@@ -83,6 +83,10 @@ Text: {
   print: t ~> {}
 }
 
+Unit: {
+  type t = {}
+}
+
 Zero: {
   type t
 }
@@ -94,6 +98,7 @@ type int = Int.t
 type list a = List.t a
 type opt a = Opt.t a
 type text = Text.t
+type unit = Unit.t
 type zero = Zero.t
 
 % * + - / : int -> int -> int

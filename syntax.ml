@@ -54,6 +54,7 @@ and exp' =
   | RecE of var * typ * exp
   | ImportE of path
   | AnnotE of exp * typ
+  | WithEnvE of (Env.env -> exp)
 
 and bind = (bind', unit) phrase
 and bind' =
@@ -351,6 +352,145 @@ let rollP(p, t2) =
    infer = None;
    annot = Some t2}
 
+(* data *)
+
+let toEP p =
+  let b, t = (defaultP p).it in
+  (b, t, Expl@@p.at)@@p.at
+
+let absTC = function
+  | [] -> TypT
+  | ({at} :: _) as tps ->
+     funT(List.map (function
+              | {it = ({it = VarB(_, _); at = atH}, t, i); at} ->
+                 (EmptyB@@atH, t, i)@@at
+              | unnamed -> unnamed) tps,
+          TypT@@at,
+          Pure@@at)
+
+let toCP v tps =
+  let at = v.at in
+  annotP(varP(v)@@at, absTC(tps)@@at)@@at
+
+let appPs f xs =
+  List.fold_left (fun f tp ->
+      match tp with
+      | {it = ({it = VarB(v, _)}, _, _); at} -> appE(f, VarE(v)@@at)@@at
+      | _ -> assert false) f xs
+
+let appTPs tc tps =
+  PathT (appPs tc tps)
+
+let toImpl = function
+  | {it = (b, ({it = TypT} as t), i); at} -> (b, t, Impl@@i.at)@@at
+  | other -> other
+
+let seqDs = function
+  | [] -> EmptyD
+  | d::ds -> (List.fold_left (fun s d -> seqD(s, d)@@d.at) d ds).it
+
+let seqBs = function
+  | [] -> EmptyB
+  | b::bs -> (List.fold_left (fun s b -> seqB(s, b)@@b.at) b bs).it
+
+let dataE(case_v, small_v, tps, ascribeE, cases, at) =
+  let ntps, utps, tps =
+    tps |> List.fold_left (fun (ntps, utps, tps) ->
+               function
+                 | {it = ({it = EmptyB; at = atH}, t, i); at} ->
+                   let unnamed =
+                     let p = varP(uniq_var()@@atH) in (p.bind, t, i)@@at in
+                   (ntps, utps @ [unnamed], tps @ [unnamed])
+                 | named ->
+                   (ntps @ [named], utps, tps @ [named]))
+             ([], [], []) in
+  let case_tp = toEP (toCP case_v utps) in
+  let small_p = toCP small_v tps in
+  let small_tp = toEP small_p in
+  let impure_v = "I$"@@at in
+  let impure_c = funE(case_tp::small_tp::ntps, TypE(cases)@@at)@@at in
+  let impure_t = appTPs (VarE(impure_v)@@at) (case_tp::small_tp::ntps)@@at in
+  let ex_v = "J$"@@at in
+  let ex_c =
+    funE(small_tp::ntps,
+         TypE(StrT(seqDs[VarD(case_v, funT(utps, TypT@@at, Pure@@at)@@at)@@at;
+                         InclD(impure_t)@@at] @@at)@@at)@@at)@@at in
+  let ex_t = appTPs (VarE(ex_v)@@at) (small_tp::ntps)@@at in
+  let big_v = "T$"@@at in
+  let big_c =
+    let c_v = "c$"@@at in
+    funE(small_tp::tps,
+         TypE(funT([let p = varP(c_v) in (p.bind, ex_t, Expl@@at)@@at],
+                   appTPs (DotE(VarE(c_v)@@at, case_v)@@at) utps@@at,
+                   Impure@@at)@@at)@@at)@@at in
+  let big_t = appTPs (VarE(big_v)@@at) (small_tp::tps)@@at in
+  let small_c =
+    recE(defaultTP small_p, funE(tps, TypE(WrapT(big_t)@@at)@@at)@@at)@@at in
+  let small_t = appTPs (VarE(small_v)@@at) tps@@at in
+  let cs_v = "cs$"@@at in
+  let cs_p = toEP (annotP(varP(cs_v)@@at, impure_t)@@at) in
+  let e_v = "e$"@@at in
+  let e_p = toEP (annotP(varP(e_v)@@at, small_t)@@at) in
+  let case_e =
+    funE(List.map toImpl (case_tp::tps) @ [cs_p; e_p],
+      appE(unwrapE(unrollE(VarE(e_v)@@at, small_t)@@at, WrapT(big_t)@@at)@@at,
+           StrE(SeqB(VarB(case_v, VarE(case_v)@@at)@@at,
+                     InclB(VarE(cs_v)@@at)@@at)@@at)@@at)@@at)@@at in
+  let mk_v = "mk$"@@at in
+  let c_v = "c$"@@at in
+  let c_p = toEP (annotP(varP(c_v)@@at, big_t)@@at) in
+  let mk_e =
+    funE(List.map toImpl tps @ [c_p],
+         rollE(wrapE(VarE(c_v)@@at, WrapT(big_t)@@at)@@at, small_t)@@at)@@at in
+  let d_v = "D$"@@at in
+  let d_e = funE(ntps, appPs (VarE(ex_v)@@at) (small_tp::ntps))@@at in
+  let seal_e =
+    StrT(seqDs[VarD(small_v, absTC(tps)@@at)@@at;
+               VarD(case_v,
+                    funT(List.map toImpl (case_tp::tps) @ [cs_p],
+                         funT([e_p],
+                              appTPs (VarE(case_v)@@at) utps @@at,
+                              Impure@@at)@@at,
+                         Pure@@at)@@at)@@at;
+               VarD(mk_v, funT(List.map toImpl tps @ [c_p], small_t, Pure@@at)@@at)@@at;
+               VarD(d_v, funT(ntps, EqT(TypE(ex_t)@@at)@@at, Pure@@at)@@at)@@at] @@at)@@at in
+  letE(
+      InclB(
+          letE(seqBs[VarB(impure_v, impure_c)@@at;
+                     VarB(ex_v, ex_c)@@at;
+                     VarB(big_v, big_c)@@at] @@at,
+               ascribeE(StrE(seqBs[VarB(small_v, small_c)@@at;
+                                   VarB(case_v, case_e)@@at;
+                                   VarB(mk_v, mk_e)@@at;
+                                   VarB(d_v, d_e)@@at]@@at)@@at,
+                        seal_e)@@at)@@at)@@at,
+      WithEnvE(fun env ->
+          let rec find_cases = function
+            | Types.TypT(Types.ExT(_, t)) -> find_cases t
+            | Types.FunT(_, _, Types.ExT(_, t), _) -> find_cases t
+            | Types.StrT(_::cases) -> cases
+            | _ -> failwith "bug" in
+          let cases = find_cases (Env.lookup_val d_v.it env) in
+          let cons =
+            cases
+            |> List.map (fun (label, ts) ->
+                   let rec initPs = function
+                     | Types.FunT (_, _, Types.ExT (_, ts), e) ->
+                        (match e with
+                         | Types.Implicit -> initPs ts
+                         | Types.Explicit _ ->
+                           toEP (varP(uniq_var()@@at)@@at) :: initPs ts)
+                     | _ -> [] in
+                   let ps = initPs ts in
+                   let r_v = "r$"@@at in
+                   VarB(label@@at,
+                        funE(List.map toImpl ntps @ ps,
+                             appE(VarE(mk_v)@@at,
+                                  funE([toEP (annotP(varP(r_v)@@at, appTPs (VarE(d_v)@@at) ntps@@at)@@at)],
+                                       appPs (DotE(VarE(r_v)@@at, label@@at)@@at) ps)@@at)@@at)@@at)@@at) in
+          StrE(seqBs((VarB(small_v, VarE(small_v)@@at)@@at) ::
+                     (VarB(case_v, VarE(case_v)@@at)@@at) :: cons)@@at)@@at)@@at)
+
 
 (* *)
 
@@ -412,6 +552,7 @@ let label_of_exp e =
   | RecE _ -> "RecE"
   | ImportE _ -> "ImportE"
   | AnnotE _ -> "AnnotE"
+  | WithEnvE _ -> "WithEnvE"
 
 let label_of_bind b =
   match b.it with
@@ -472,6 +613,7 @@ and string_of_exp e =
   | RecE(x, t, e) -> node' [string_of_var x; string_of_typ t; string_of_exp e]
   | ImportE(p) -> node' ["\"" ^ String.escaped p.it ^ "\""]
   | AnnotE(e, t) -> node' [string_of_exp e; string_of_typ t]
+  | WithEnvE(_) -> node' ["<fun>"]
 
 and string_of_bind b =
   let node' = node (label_of_bind b) in
@@ -521,6 +663,7 @@ and imports_exp exp =
   | RecE(_, typ, exp) -> imports_typ typ @ imports_exp exp
   | ImportE path -> [path]
   | AnnotE(exp, typ) -> imports_exp exp @ imports_typ typ
+  | WithEnvE(fn) -> []
 
 and imports_bind bind =
   match bind.it with

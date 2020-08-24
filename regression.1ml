@@ -320,6 +320,112 @@ PolyRec = {
   t0 = inr (inl (0, 0) : t (int, int)) : t int
 }
 
+;;
+
+IT = data case t _ :> {
+  Int  :  Int.t ~> case Int.t
+  Text : Text.t ~> case Text.t
+}
+
+IT = let
+  type I (type t _) (type case _) = {
+    Int  :  Int.t ~> case Int.t
+    Text : Text.t ~> case Text.t
+  }
+  type J (type t _) = {type case _, ...I t case}
+  type T (type t _) x = (c: J t) ~> c.case x
+  ...{
+    ...rec {type t _} => {type t x = wrap T t x}
+    case 'x (type case _) (cs: I t case) (e: t _) =
+      e {case, ...cs}
+    mk 'x (c: T t x) = c
+  } :> {
+    type t _
+    case 'x: (type case _) -> I t case -> t x ~> case x
+    mk 'x: T t x -> t x
+  }
+  J = J t
+in {
+  t, case
+  Int  v = mk fun (r: J) => r.Int  v
+  Text v = mk fun (r: J) => r.Text v
+}
+
+IT = {
+  ...IT
+
+  impossible: t int ~> int = case (fun (type t) => t) {
+    Int  x = x
+    Text x = x
+  }
+
+  i: int = impossible (Int 9)
+  ;;t: text = impossible (Text "nine")
+}
+
+;;
+
+Ord = data case t :> {
+  Lt : case
+  Eq : case
+  Gt : case
+}
+
+Opt = data case t x :> {
+  None :      case
+  Some : x ~> case
+}
+
+Alt = {
+  data case t l r :> {
+    Left  : l ~> case
+    Right : r ~> case
+  }
+
+  ;;Left  'l 'r (v: l) = mk (fun (r: J t l r) => r.Left v)
+  ;;Right 'l 'r (v: r) = mk (fun (r: J t l r) => r.Right v)
+}
+
+List = let
+  ...let
+    type I (type case) (type t _) x = {
+      nil     :             case
+      (::) 'n : x ~> t x ~> case
+    }
+    type J (type t _) x = {type case, ...I case t x}
+    type T (type t _) x = (c: J t x) ~> c.case
+  in {
+    ...rec {type t _} => {type t x = wrap T t x}
+    case '(type case) 'x 'n (cs: I case t x) (e: t x) =
+      e {case, ...cs}
+    mk 'x (c: T t x) = c
+    D = J t
+  } :> {
+    type t _
+    case '(type case) 'x 'n: I case t x -> t x ~> case
+    mk 'x: T t x -> t x
+    type D x = J t x
+  }
+in {
+  t, case
+  nil  'x                     = mk fun (r: D x) => r.nil
+  (::) 'x 'n (v: x) (vs: t x) = mk fun (r: D x) => r.:: v vs
+}
+
+List' = {
+  data case t x :> {
+    nil  :             case
+    (::) : x ~> t x ~> case
+  }
+
+;;  nil  'x                  = mk (fun (r: J x) => r.nil)
+;;  (::) 'x (v: x) (vs: t x) = mk (fun (r: J x) => r.:: v vs)
+
+  isEmpty = case {nil = true, _::_ = false}
+}
+
+;;
+
 N :> {
   type Z
   type S _
@@ -353,6 +459,39 @@ ListN = {
   ...ListN
   map 'x 'y (xy: x ~> y) = rec (map 'n: t x n ~> t y n) =>
     case (t _) {
+      nil
+      x :: xs = xy x :: map xs
+    }
+}
+
+ListN'' = let
+  type I (type case _) (type t _ _) x = {
+    nil     :               case N.Z
+    (::) 'n : x ~> t x n ~> case (N.S n)
+  }
+  type J (type t _ _) x = {type case _, ...I case t x}
+  type T (type t _ _) x n = (c: J t x) -> c.case n
+in {
+  ...rec {type t _ _} => {type t x n = wrap T t x n}
+  case (type case _) 'x 'n (cs: I case t x) (e: t x n) =
+    e {case, ...cs}
+  mk 'x 'n (c: T t x n) = c
+  D = J t
+} :> {
+  type t _ _
+  case 'x 'n: (type case _) -> I case t x -> t x n ~> case n
+  mk 'x 'n: T t x n -> t x n
+  type D x = J t x
+}
+
+ListN' = {
+  data case t x _ :> {
+    nil     :               case N.Z
+    (::) 'n : x ~> t x n ~> case (N.S n)
+  }
+
+  map 'x 'y 'n (xy: x -> y) = rec (map 'n: t x n ~> t y n) =>
+    case (t y) {
       nil
       x :: xs = xy x :: map xs
     }

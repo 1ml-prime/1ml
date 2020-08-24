@@ -39,6 +39,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %token IMPORT
 %token WRAP_OP UNWRAP_OP
 %token ROLL_OP UNROLL_OP
+%token DATA
 
 %token EOF
 
@@ -424,6 +425,8 @@ annexp :
     { $2($1, $3)@@at() }
 ;
 exp :
+  | DATA name name typparamlist annexp_op typ
+    { dataE($2, $3, $4, $5, $6, at())@@at() }
   | LET bind IN exp
     { letE($2, $4)@@at() }
   | IF exp THEN exp ELSE exp
@@ -506,6 +509,8 @@ atbind :
     { inclB(letE($2, $4)@@at())@@at() }
   | IMPORT TEXT
     { InclB(ImportE($2@@ati 2)@@at())@@at() }
+  | DATA name name typparamlist annexp_op typ
+    { InclB(dataE($2, $3, $4, $5, $6, at())@@at())@@at() }
 /*
   | LPAR bind RPAR
     { $2 }

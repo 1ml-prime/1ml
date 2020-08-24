@@ -9,26 +9,14 @@ local import "prelude"
 ;; clarity.
 
 GADTs = {
-  Exp = {
-    local
-      type I (type t _) = {
-        type case _
-        Zero       :               case int
-        Succ       :      t int ~> case int
-        Pair 'a 'b : t a ~> t b ~> case (a, b)
-      }
-      ...rec {type t _} => {type t a = wrap (m: I t) ~> m.case a}
-      I = I t
-    t
-    case (m: I) (e: t _) = e m
-    Zero     : t _ = fun (m: I) => m.Zero
-    Succ x   : t _ = fun (m: I) => m.Succ x
-    Pair l r : t _ = fun (m: I) => m.Pair l r
+  Exp = data case t _ :> {
+    Zero       :               case int
+    Succ       :      t int ~> case int
+    Pair 'a 'b : t a ~> t b ~> case (a, b)
   }
 
   eval = rec (eval 'a: Exp.t a ~> a) =>
-    Exp.case {
-      type case x = x
+    Exp.case (type fun x => x) {
       Zero = 0
       Succ x = eval x + 1
       Pair l r = (eval l, eval r)

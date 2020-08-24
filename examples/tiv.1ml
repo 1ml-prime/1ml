@@ -1,0 +1,116 @@
+local import "prelude"
+
+;; As 1ML is powerful enough to encode GADTs we can define a value independent
+;; type representation or a deep embedding of type constructors.
+
+type iso a b = {to: a ~> b, from: b ~> a}
+
+Rep = {
+  data case t _ :> {
+    bool: case bool
+    char: case char
+    int : case int
+    text: case text
+    unit: case unit
+
+    alt  'x 'y: t x ~> t y ~> case (alt x y)
+    ~~>  'x 'y: t x ~> t y ~> case (x ~> y)
+    pair 'x 'y: t x ~> t y ~> case (x, y)
+
+    iso 'x 'y: iso x y ~> t y ~> case x
+
+    lazy 'x: ({} ~> t x) ~> case x
+  }
+
+  defaults (type t _) (default 'a: t a) = {
+    bool = default
+    char = default
+    int  = default
+    unit = default
+    text = default
+
+    alt   _ _ = default
+    _ ~~> _   = default
+    pair  _ _ = default
+
+    iso _ _ = default
+
+    lazy _ = default
+  }
+
+  local i = {to = Opt.case {none = inl {}, some = inr}
+             from = Alt.case {inl {} = none, inr = some}}
+  opt a = iso i (alt unit a)
+
+  local i = {to = List.case {nil = inl {}, x :: xs = inr (x, xs)}
+             from = Alt.case {inl {} = nil, inr (x, xs) = x::xs}}
+  list v = rec vs => lazy fun {} => iso i (alt unit (pair v vs))
+}
+
+;; Generic toText
+
+ToText = {type t x = x ~> text}
+
+toText = rec (toText 'x: Rep.t x ~> ToText.t x) => Rep.case ToText.t {
+  bool = Bool.toText
+  char c =  "'" ++ Text.fromChar c ++ "'"
+  int = Int.toText
+  text t = "\"" ++ t ++ "\""
+  unit {} = "{}"
+
+  alt aT bT = Alt.case {
+    inl a = "(inl " ++ toText aT a ++ ")"
+    inr b = "(inr " ++ toText bT b ++ ")"
+  }
+
+  (_ ~~> _) _ = "<fun>"
+
+  pair aT bT (a, b) = "(" ++ toText aT a ++ ", " ++ toText bT b ++ ")"
+
+  iso ab bT = ab.to >> toText bT
+
+  lazy th = toText (th {})
+}
+
+println rep x = print (toText rep x ++ "\n")
+
+do let ...Rep
+   println int 101
+   println (pair bool text) (true, "that")
+   println (opt bool) (some false)
+   println (iso {to i = i <> 0, from b = if b then 1 else 0} bool) 1
+   println (list int) (3 :: (1 :: (4 :: nil)))
+
+;; Generic eq
+
+Eq = {type t x = x ~> x ~> bool}
+
+eq = rec (eq 'x: Rep.t x ~> Eq.t x) => Rep.case Eq.t {
+  bool = Bool.==
+  char = Char.==
+  int = Int.==
+  text = Text.==
+  unit _ _ = true
+
+  alt aT bT l r = l |> Alt.case {
+    inl l = r |> Alt.case {inl = eq aT l, inr _ = false}
+    inr l = r |> Alt.case {inl _ = false, inr = eq bT l}
+  }
+
+  (_ ~~> _) _ _ = false
+
+  pair aT bT (l1, l2) (r1, r2) = eq aT l1 r1 && eq bT l2 r2
+
+  iso ab bT l r = eq bT (ab.to l) (ab.to r)
+
+  lazy th l r = eq (th {}) l r
+}
+
+do let ...Rep
+       test t l r = print ("eq " ++ toText t l ++
+                             " " ++ toText t r ++
+                           " = " ++ toText bool (eq t l r) ++ "\n")
+   test int 101 42
+   test (pair int bool) (1, true) (1, true)
+   test (list int) (3 :: (1 :: nil)) (4 :: (1 :: nil))
+   test (list int) (4 :: (2 :: nil)) (4 :: (2 :: nil))
