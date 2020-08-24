@@ -1,5 +1,37 @@
 local import "./primitives"
 
+Succ: {
+  type t _
+}
+
+Prec: {
+  type _0 n =            n
+  type _1 n = Succ.t (_0 n)
+  type _2 n = Succ.t (_1 n)
+  type _3 n = Succ.t (_2 n)
+  type _4 n = Succ.t (_3 n)
+  type _5 n = Succ.t (_4 n)
+  type _6 n = Succ.t (_5 n)
+  type _7 n = Succ.t (_6 n)
+  type _8 n = Succ.t (_7 n)
+}
+
+Assoc: {
+  type L n = (Succ.t n,        n)
+  type N n = (       n,        n)
+  type R n = (       n, Succ.t n)
+}
+
+type Fixity (type prec _) (type assoc _) = {prec, assoc}
+
+fixity * / %           = Fixity Prec.8 Assoc.L
+fixity + -             = Fixity Prec.7 Assoc.L
+fixity :: ++           = Fixity Prec.6 Assoc.R
+fixity < <= <> == > >= = Fixity Prec.5 Assoc.N
+fixity << >>           = Fixity Prec.4 Assoc.L
+fixity |>              = Fixity Prec.3 Assoc.L
+fixity <|              = Fixity Prec.3 Assoc.R
+
 Alt: {
   type t _ _
   inl 'a 'b: a -> t a b
@@ -93,6 +125,7 @@ type char = Char.t
 type int = Int.t
 type list a = List.t a
 type opt a = Opt.t a
+type succ = Succ.t
 type text = Text.t
 type zero = Zero.t
 

@@ -39,6 +39,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %token IMPORT
 %token WRAP_OP UNWRAP_OP
 %token ROLL_OP UNROLL_OP
+%token FIXITY
 
 %token EOF
 
@@ -109,11 +110,25 @@ head :
     { $1 }
 ;
 
-names :
+syms :
+  | sym
+    { [$1] }
+  | syms sym
+    { $2::$1 }
+;
+
+plainnames :
   | name
     { [$1] }
-  | name names
+  | name plainnames
     { $1::$2 }
+;
+
+names :
+  | FIXITY syms
+    { List.map (fun n -> ("fixity." ^ n.it) @@ n.at) $2 }
+  | plainnames
+    { $1 }
 ;
 
 label :

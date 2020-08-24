@@ -1,5 +1,9 @@
 import "./primitives"
 
+Succ = {
+  type t _ = {}
+}
+
 Bool = {
   ...Bool
   not b = if b then false else true

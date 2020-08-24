@@ -270,6 +270,7 @@ rule token = parse
   | "fun" { FUN }
   | "if" { IF }
   | "in" { IN }
+  | "fixity" { FIXITY }
   | "..." { ELLIPSIS }
   | "let" { LET }
   | "||" { LOGICAL_OR }
