@@ -585,30 +585,52 @@ Trace.debug (lazy ("[UnwrapE] s2 = " ^ string_of_norm_extyp s2));
       IL.RecE(var.it, erase_typ t2, e)
     | _ ->
       let t2, zs2 = elab_pathexp env1 exp1 l in
+      let recT () =
 Trace.debug (lazy ("[RecT] s1 = " ^ string_of_norm_extyp s1));
 Trace.debug (lazy ("[RecT] t2 = " ^ string_of_norm_typ t2));
-      let vts1 = varTs aks1 in
-      let ts, zs3, e =
-        try sub_typ env1 t2 t1 vts1 with Sub e -> error typ.at
-          ("recursive type does not match annotation: " ^ Sub.string_of_error e)
-      in
-      ts
-       |> List.iter (fun t ->
-          let t = norm_typ t in
-          if List.exists (fun t' -> t' = t) vts1 then
-            error typ.at "illegal recursive type alias");
+        let vts1 = varTs aks1 in
+        let ts, zs3, e =
+          try sub_typ env1 t2 t1 vts1 with Sub e -> error typ.at
+            ("recursive type does not match annotation: " ^ Sub.string_of_error e)
+        in
+        ts
+         |> List.iter (fun t ->
+            let t = norm_typ t in
+            if List.exists (fun t' -> t' = t) vts1 then
+              error typ.at "illegal recursive type alias");
 Trace.debug (lazy ("[RecT] ts = " ^ String.concat ", " (List.map string_of_norm_typ ts)));
-      let t3, k3 = try make_rec_typ t1 with Recursive ->
-        error typ.at "illegal type for recursive expression" in
-      let a = freshen_var env var.it in
-      let tas1 = paths_typ (VarT(a, k3)) (varTs aks1) t1 in
-      let t3' = subst_typ (subst aks1 tas1) (subst_typ (subst aks1 ts) t3) in
-      let t4 = RecT((a, k3), t3') in
+        let t3, k3 = try make_rec_typ t1 with Recursive ->
+          error typ.at "illegal type for recursive expression" in
+        let a = freshen_var env var.it in
+        let tas1 = paths_typ (VarT(a, k3)) (varTs aks1) t1 in
+        let t3' = subst_typ (subst aks1 tas1) (subst_typ (subst aks1 ts) t3) in
+        let t4 = RecT((a, k3), t3') in
 Trace.debug (lazy ("[RecT] t4 = " ^ string_of_norm_typ t4));
-      let t = subst_typ (subst aks1 (List.map (subst_typ [a, t4]) tas1)) t1 in
+        let t = subst_typ (subst aks1 (List.map (subst_typ [a, t4]) tas1)) t1 in
 Trace.debug (lazy ("[RecT] t = " ^ string_of_norm_typ t));
-      ExT([], t), Pure, lift_warn exp.at t env (zs1 @ zs2 @ zs3),
-      IL.LetE(e, "_", materialize_typ t)
+        ExT([], t), Pure, lift_warn exp.at t env (zs1 @ zs2 @ zs3),
+        IL.LetE(e, "_", materialize_typ t) in
+      let depT aks2 t2 =
+        let ts, zs3, e =
+          try sub_typ env1 t2 t1 (varTs aks1) with Sub e -> error typ.at
+            ("recursive type does not match annotation: " ^ Sub.string_of_error e)
+        in
+        let aks = aks1 @ aks2 in
+        let aks' = freshen_vars env aks in
+        let t3 = subst_typ (subst aks (varTs aks')) t2 in
+        let t3' = TypT(ExT(aks', t3)) in
+        ExT([], t3'), Pure, lift_warn typ.at t3 env (zs1 @ zs2 @ zs3),
+        IL.LetE(e, "_", materialize_typ t3') in
+      (match t1 with
+      | TypT(_) -> recT ()
+      | StrT(_) ->
+        (match t2 with
+        | TypT(ExT(aks2, t2)) -> depT aks2 t2
+        | _ -> recT ()
+        )
+      | _ ->
+        error typ.at "pattern does not denote a type"
+      )
     )
   | EL.ImportE(path) ->
     (match Import.resolve (Source.at_file path) path.it with

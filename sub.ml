@@ -157,6 +157,24 @@ let extract_bind oneway env tr1 l t2 =
     | None -> raise (Sub (Struct(l, Missing)))
     | Some (t, zs, e) -> t, zs, fun f _ _ -> IL.AppE(f, e)
 
+let rec has_typs_typ ps = function
+  | StrT(tr) -> List.exists (fun (_, t) -> has_typs_typ ps t) tr
+  | FunT(aks, td, ExT(_, tr), e) ->
+    (match e with
+     | Implicit | Explicit Pure ->
+       has_typs_typ (List.map (fun p -> AppT(p, varTs aks)) ps) tr
+     | Explicit Impure -> false)
+  | TypT(ExT(_, p)) -> List.mem p ps
+  | VarT(_)
+  | PrimT(_)
+  | WrapT(_)
+  | LamT(_)
+  | AppT(_)
+  | TupT(_)
+  | DotT(_)
+  | RecT(_)
+  | InferT(_) -> false
+
 let resolve_typ z t =
   Trace.sub (lazy ("[resolve_typ] z = " ^ string_of_norm_typ (InferT(z))));
   Trace.sub (lazy ("[resolve_typ] t = " ^ string_of_norm_typ t));
@@ -179,6 +197,24 @@ let rec sub_typ oneway env t1 t2 ps =
   Trace.sub (lazy ("[sub_typ] t2 = " ^ string_of_norm_typ t2));
   Trace.sub (lazy ("[sub_typ] ps = " ^
     String.concat ", " (List.map string_of_norm_typ ps)));
+  let ts', zs', t2, ps =
+    if ps <> [] then
+      let su, zs' = match_typ oneway env t1 t2 ps in
+      Trace.sub (lazy ("[sub_typ] su = " ^
+        String.concat ", " (List.map (fun (p, t) -> Printf.sprintf "[= %s] - [= %s]\n" (string_of_typ p) (string_of_typ t)) su)));
+      let t2 = subst_typ (List.map (fun (p, t) -> psubst p t) su) t2 in
+      let ps' = List.filter (fun p -> List.mem_assoc p su) ps in
+      let ts' = List.map (fun p -> List.assoc p su) ps' in
+      let ps = List.filter (fun p -> not (List.mem_assoc p su)) ps in
+      if ps <> [] then begin
+        Trace.sub (lazy ("[sub_typ] unmatched ps = " ^
+          String.concat ", " (List.map string_of_norm_typ ps)));
+        raise Not_found
+      end;
+      ts', zs', t2, ps
+    else
+      [], [], t2, ps
+  in
   let e1 = IL.VarE("x") in
   let t1' = norm_typ t1 in
   let t2' = freshen_typ env (norm_typ t2) in
@@ -363,7 +399,7 @@ let rec sub_typ oneway env t1 t2 ps =
   Trace.sub (lazy ("[sub_typ] done ts = " ^
     String.concat ", " (List.map string_of_norm_typ ts)));
   Trace.sub (lazy ("[sub_typ] done x -> " ^ IL.string_of_exp e));
-  ts, zs, IL.LamE("x", erase_typ t1, e)
+  ts' @ ts, zs' @ zs, IL.LamE("x", erase_typ t1, e)
 
 and sub_extyp oneway env s1 s2 ps =
   Trace.sub (lazy ("[sub_extyp] s1 = " ^ string_of_norm_extyp s1));
@@ -422,6 +458,82 @@ and equal_row env tr1 tr2 ps =
   let _, zs2, _ =
     try sub_row false env tr2 tr1 ps with Sub e -> raise (Sub (Right e)) in
   zs1 @ zs2
+
+and match_typ oneway env t1 t2 ps =
+  let lift = lift (level ()) t1 in
+  let t2 = norm_typ t2 in
+  Trace.sub (lazy ("[match_typ] t1 = " ^ string_of_norm_typ t1));
+  Trace.sub (lazy ("[match_typ] t2 = " ^ string_of_typ t2));
+  Trace.sub (lazy ("[match_typ] ps = " ^
+    String.concat ", " (List.map string_of_norm_typ ps)));
+  if not (has_typs_typ ps t2) then [], [] else
+  match norm_typ t1, freshen_typ env t2 with
+  | t1, FunT(aks21, t21, ExT(aks22, t22), Implicit) ->
+    assert (aks22 = []);
+    let su, zs = match_typ oneway (add_typs aks21 env) t1 t22 ps in
+    List.map (fun (p, t) -> (p, LamT(aks21, t))) su, lift env zs
+
+  | FunT(aks11, t11, ExT(aks12, t12), Implicit), t2 ->
+    assert (aks12 = []);
+    let ts1, zs1 = guess_typs (Env.domain_typ env) aks11 in
+    let t1' = subst_typ (subst aks11 ts1) t12 in
+    let su, zs2 = match_typ oneway env t1' t2 ps in
+    su, zs1 @ zs2
+
+  | TypT(s1), TypT(s2) ->
+    (match s1, s2 with
+    | ExT(aks1, t), ExT([], p) when List.mem p ps ->
+      if aks1 <> [] || not (!undecidable_flag || is_small_typ t) then
+         raise (Sub (Mismatch (t1, t2)));
+      [(p, t)], []
+    | _ ->
+      [], [])
+
+  | StrT(tr1), StrT(tr2) ->
+    match_row oneway env tr1 tr2 ps
+
+  | FunT(aks1, t11, s1, Explicit p1), FunT(aks2, t21, s2, Explicit p2) ->
+    if p1 = Impure && p2 = Pure then raise (Sub (FunEffect(p1, p2)));
+    if p1 <> Pure || p2 <> Pure then
+      [], []
+    else
+      let env' = add_typs aks2 env in
+      let ts1, zs1, f1 =
+        try sub_typ oneway env' t21 t11 (varTs aks1) with Sub e ->
+          raise (Sub (FunParam e)) in
+      let ps' = List.map (fun p -> AppT(p, varTs aks2)) ps in
+      let su, zs2 =
+        try match_extyp
+              oneway env' (subst_extyp (subst aks1 ts1) s1) s2 ps'
+        with Sub e -> raise (Sub (FunResult e)) in
+      List.map (function (AppT(p, _), t) -> (p, LamT(aks2, t))
+                       | _ -> assert false) su, lift env (zs1 @ zs2)
+
+  | _ ->
+    raise (Sub (Mismatch (t1, t2)))
+
+and match_extyp oneway env s1 s2 ps =
+  let ExT(aks2, t2) = freshen_extyp env s2 in
+  let ExT(aks1, t1) = freshen_extyp (add_typs aks2 env) s1 in
+  match aks1, aks2 with
+  | [], [] ->
+    match_typ oneway env t1 t2 ps
+  | _ ->
+    [], []
+
+and match_row oneway env tr1 tr2 ps =
+  match tr2 with
+  | [] ->
+    [], []
+  | (l, t2)::tr2' ->
+    let t1, zs, app = extract_bind oneway env tr1 l t2 in
+    let su1, zs1 =
+      try match_typ oneway env t1 t2 ps with
+      | Sub e -> raise (Sub (Struct(l, e))) in
+    let su2, zs2 =
+      match_row oneway env tr1
+        (subst_row (List.map (fun (p, t) -> psubst p t) su1) tr2') ps in
+    su1 @ su2, zs @ zs1 @ zs2
 
 let sub_typ = sub_typ true
 let sub_extyp = sub_extyp true

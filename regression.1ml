@@ -33,6 +33,30 @@ type DEC_PUNNING = {int, list}
 
 ;;
 
+type RDS = rec (R: let type T'1 = {type t _} in {A: T'1, B: T'1}) => let
+  type ONE (type this _) (type that _) = {
+    t = this
+    aThis 'a: this a
+    ofThat 'a: that a -> this a
+  }
+in {
+  A: ONE R.A.t R.B.t
+  B: ONE R.B.t R.A.t
+}
+
+Rds :> RDS = let
+  One = {
+    type t _ = ()
+    aThis = ()
+    ofThat _ = ()
+  }
+in {
+  A = One
+  B = One
+}
+
+;;
+
 Equivalence: {
   type t a b
 
@@ -230,7 +254,21 @@ Kaboom = rec (R: rec R => {kaboom: () ~> R}) : (= R) => {kaboom () = R}
 
 ;;
 
-Mutually = let
+Mutually :> rec (R: {
+  Even: {type t _}
+  Odd: {type t _}
+}) => {
+  Even: {
+    t = R.Even.t
+    make 'x: x -> R.Odd.t x -> R.Even.t x
+    size 'x: R.Even.t x ~> int
+  }
+  Odd: {
+    t = R.Odd.t
+    make 'x: opt (R.Even.t x) -> R.Odd.t x
+    size 'x: R.Odd.t x ~> int
+  }
+} = let
   T = rec (R: {
     Even: {type t _}
     Odd: {type t _}
@@ -290,9 +328,9 @@ type (a `>>` b) c = c
 
 ;;
 
-AnnotRecType = {
-  t = type rec (type t x) : type -> type => fun x => (x, t x)
-}
+;;AnnotRecType = {
+;;  t = type rec (type t x) : type -> type => fun x => (x, t x)
+;;}
 
 Hungry = {
   type eat a = rec eat_a => a ~> eat_a
