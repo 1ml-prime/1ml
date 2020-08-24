@@ -26,7 +26,7 @@ let parse_error s = raise (Source.Error (Source.nowhere_region, s))
 %}
 
 %token HOLE PRIMITIVE
-%token FUN REC LET IN DO WRAP TYPE ELLIPSIS
+%token FUN REC AND LET IN DO WRAP TYPE ELLIPSIS
 %token IF THEN ELSE LOGICAL_OR LOGICAL_AND AS
 %token EQUAL COLON SEAL ARROW SARROW DARROW
 %token WITH
@@ -511,12 +511,24 @@ atbind :
     { $2 }
 */
 ;
+atbinds :
+  | atbind
+    { $1 }
+  | atbind AND atbinds
+    { seqB($1, $3)@@at() }
+;
+recbind :
+  | atbind
+    { $1 }
+  | REC atbinds
+    { recB($2)@@at() }
+;
 bind :
   |
     { EmptyB@@at() }
-  | atbind
+  | recbind
     { $1 }
-  | atbind COMMA bind
+  | recbind COMMA bind
     { seqB($1, $3)@@at() }
   | LOCAL bind IN bind
     { letB($2, $4)@@at() }

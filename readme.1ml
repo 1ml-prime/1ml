@@ -46,8 +46,8 @@ p = f (fun x => x)
 
 
 
-type stream = rec t => {hd : int, tl : () ~> opt t} ;; creates rec type
-single x : stream = {hd = x, tl = fun () => none}  ;; b : t rolls value into t
+rec type stream t = {hd : t, tl : () ~> opt (stream t)} ;; creates rec type
+single x : stream _ = {hd = x, tl = fun () => none}  ;; b : t rolls value into t
 {hd = n} = single 5                    ;; pattern match rec value
 do Int.print n                         ;; or:
 do Int.print (single 7).hd             ;; access rec value
@@ -55,18 +55,16 @@ do Int.print (single 7).hd             ;; access rec value
 
 
 
-count = rec self => fun i =>
-  if i <> 0 then self (i - 1)
+rec count i =
+  if i <> 0 then count (i - 1)
 
-repeat = rec self => fun x : stream =>
-  {hd = x, tl = fun () => some (self x)}
+rec repeat x : stream _ =
+  {hd = x, tl () = some (repeat x)}
 
 
 
-{even, odd} = rec (self : {even : int ~> stream, odd : int ~> stream}) => {
-  even x : stream = {hd = x, tl = fun () => some (self.odd (x + 1))}
-  odd x : stream = {hd = x, tl = fun () => some (self.even (x + 1))}
-}
+rec even x : stream _ = {hd = x, tl () = some (odd (x + 1))}
+and odd x : stream _ = {hd = x, tl () = some (even (x + 1))}
 
 
 

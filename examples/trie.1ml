@@ -8,7 +8,7 @@ FunctionalTrie = {
       alt  'v 'k1 'k2 : t k1 v ~> t k2 v ~> case (alt k1 k2) v
       pair 'v 'k1 'k2 : t k1 (t k2 v)    ~> case (k1, k2) v
     }
-    ...rec {type t _ _} => {type t k v = wrap (m: I t) ~> m.case k v}
+    rec type t k v = wrap (m: I t) ~> m.case k v
     I = I t
 
   t
@@ -17,7 +17,7 @@ FunctionalTrie = {
   alt l r : t _ _ = fun (m: I) => m.alt l r
   pair lr : t _ _ = fun (m: I) => m.pair lr
 
-  lookup = rec (lookup 'k 'v: t k v ~> k ~> opt v) =>
+  rec lookup 'k 'v: t k v ~> k ~> opt v =
     case {
       type case k v = k ~> opt v
       unit m {} = m

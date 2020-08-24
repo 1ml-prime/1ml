@@ -10,7 +10,7 @@ Fun = {
   type t a b = a ~> b
   id x = x
   const x _ = x
-  bot = rec (bot: _ -> _) => fun x => bot x
+  rec bot: _ -> _ = fun x => bot x
   curry f x y = f (x, y)
   uncurry f (x, y) = f x y
   flip f x y = f y x
@@ -55,7 +55,7 @@ Pair = {
 }
 
 List = {
-  ...rec {type t _} => {type t x = Opt.t (x, t x)}
+  rec type t x = Opt.t (x, t x)
   nil = Opt.none
   hd :: tl = Opt.some (hd, tl)
   case {nil, ::} = Opt.case {

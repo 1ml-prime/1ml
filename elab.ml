@@ -406,6 +406,12 @@ Trace.debug (lazy ("[VarE] s = " ^ string_of_norm_extyp (ExT([], lookup_var env 
     let s, zs = elab_typ env typ "" in
     ExT([], TypT(s)), Pure, zs, IL.LamE("_", erase_extyp s, IL.TupE[])
 
+  | EL.PathE(exp) ->
+    let s, p, zs, e = elab_exp env exp l in
+    if p = Impure then
+      error exp.at "impure type expression";
+    s, p, zs, e
+
   | EL.StrE(bind) ->
     elab_bind env bind l
 
@@ -581,7 +587,8 @@ Trace.debug (lazy ("[UnwrapE] s2 = " ^ string_of_norm_extyp s2));
           ("recursive expression diverges: " ^ Sub.string_of_error e)
       in
       (* TODO: syntactic restriction *)
-      s2, Pure, lift_warn exp.at t2 (add_typs aks3 env) (zs1 @ zs2 @ zs3 @ zs4 @ zs5),
+      s2, Pure,
+      lift_warn exp.at t2 (add_typs aks2 env) (zs1 @ zs2 @ zs3 @ zs4 @ zs5),
       IL.RecE(var.it, erase_typ t2, e)
     | _ ->
       let t2, zs2 = elab_pathexp env1 exp1 l in

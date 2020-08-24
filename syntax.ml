@@ -42,6 +42,7 @@ and exp' =
   | VarE of var
   | PrimE of Prim.const
   | TypE of typ
+  | PathE of exp
   | StrE of bind
   | FunE of var * typ * exp * impl
   | WrapE of var * typ
@@ -106,7 +107,7 @@ let opt fn (e, t) =
 
 let typE(t) =
   match t.it with
-  | PathT(e) -> e.it
+  | PathT(e) -> PathE(e)
   | _ -> TypE(t)
 
 let pathT(e) =
@@ -400,6 +401,7 @@ let label_of_exp e =
   | VarE _ -> "VarE"
   | PrimE _ -> "PrimE"
   | TypE _ -> "TypE"
+  | PathE _ -> "PathE"
   | StrE _ -> "StrE"
   | FunE _ -> "FunE"
   | WrapE _ -> "WrapE"
@@ -458,6 +460,7 @@ and string_of_exp e =
   | VarE(x) -> node' [string_of_var x]
   | PrimE(c) -> node' [Prim.string_of_const c]
   | TypE(t) -> node' [string_of_typ t]
+  | PathE(e) -> node' [string_of_exp e]
   | StrE(b) -> node' [string_of_bind b]
   | FunE(x, t, e, i) ->
     node' [string_of_var x; string_of_typ t; string_of_exp e; string_of_impl i]
@@ -509,6 +512,7 @@ and imports_exp exp =
   | VarE _ -> []
   | PrimE _ -> []
   | TypE typ -> imports_typ typ
+  | PathE exp -> imports_exp exp
   | StrE bind -> imports_bind bind
   | FunE(_, typ, exp, _) -> imports_typ typ @ imports_exp exp
   | WrapE(_, typ) -> imports_typ typ
@@ -529,3 +533,144 @@ and imports_bind bind =
   | VarB(_, exp) -> imports_exp exp
   | InclB exp -> imports_exp exp
   | TypeAssertB(_, exp) -> imports_exp exp
+
+(* rec ... and ... *)
+
+let rec extract_sig_exp e =
+  (match e.it with
+  | StrE(b) -> StrT(extract_sig_bind true b)
+  | TypE _ -> TypT
+  | PathE _ -> TypT
+  | FunE(v, td, e, i) ->
+    let tc = extract_sig_exp e in
+    let p =
+      if i.it == Impl then Pure else
+        match e.it with
+        | FunE _ -> Pure
+        | TypE _ -> Pure
+        | PathE _ -> Pure
+        | _ -> Impure in
+    FunT(v, td, tc, p@@e.at, i)
+  | AnnotE(e, t) -> t.it
+  | _ -> HoleT)@@e.at
+
+and extract_sig_bind tail b =
+  (match b.it with
+  | EmptyB -> EmptyD
+  | SeqB(bl, br) -> seqD(extract_sig_bind false bl, extract_sig_bind tail br)
+  | VarB(v, e) -> VarD(v, extract_sig_exp e)
+  | InclB(e) ->
+    if tail then EmptyD else error b.at "... only allowed at end inside rec"
+  | TypeAssertB _ -> EmptyD)@@b.at
+
+let rec extract_subst p d =
+  match d.it with
+  | EmptyD -> []
+  | SeqD(dl, dr) -> extract_subst p dl @ extract_subst p dr
+  | VarD(v, _) -> [(v.it, DotE(p, v))]
+  | InclD(_) -> assert false
+
+let rec map_bind fn b =
+  (match b.it with
+  | EmptyB -> EmptyB
+  | SeqB(bl, br) -> seqB(map_bind fn bl, map_bind fn br)
+  | VarB(v, e) -> VarB(v, fn e)
+  | InclB(e) -> assert false
+  | TypeAssertB(p, e) -> TypeAssertB(p, fn e))@@b.at
+
+let rec generalize_bind p d =
+  (match d.it with
+  | EmptyD -> EmptyB
+  | SeqD(dl, dr) -> seqB(generalize_bind p dl, generalize_bind p dr)
+  | VarD(v, t) -> VarB(v, generalize_exp (DotE(p, v)@@v.at) t)
+  | InclD(_) -> assert false)@@d.at
+
+and generalize_exp p t =
+  (match t.it with
+  | StrT(d) -> StrE(seqB(InclB(p)@@t.at, generalize_bind p d)@@t.at)
+  | _ -> p.it)@@t.at
+
+type 'a subst = (string * 'a) list
+
+let subst_exp_var (s: 'a subst) (v: var) =
+  try List.assoc v.it s with Not_found -> VarE(v)
+
+let drop_subst v s = List.filter (fun (v', _) -> v.it <> v') s
+
+let rec subst_exp_typ s t =
+  (match t.it with
+  | PathT(e) -> PathT(subst_exp_exp s e)
+  | PrimT(s) -> PrimT(s)
+  | TypT -> TypT
+  | HoleT -> HoleT
+  | StrT(d) ->
+    let _, d = subst_exp_dec true s d in
+    StrT(d)
+  | FunT(v, td, tr, e, i) ->
+    FunT(v, subst_exp_typ s td, subst_exp_typ (drop_subst v s) tr, e, i)
+  | WrapT(t) -> WrapT(subst_exp_typ s t)
+  | EqT(e) -> EqT(subst_exp_exp s e)
+  | AsT(tl, tr) -> AsT(subst_exp_typ s tl, subst_exp_typ s tr)
+  | WithT(t, vs, e) -> WithT(subst_exp_typ s t, vs, subst_exp_exp s e)
+  )@@t.at
+
+and subst_exp_dec tail s d =
+  match d.it with
+  | EmptyD -> s, EmptyD@@d.at
+  | SeqD(dl, dr) ->
+    let s, dl = subst_exp_dec false s dl in
+    let s, dr = subst_exp_dec tail s dr in
+    s, SeqD(dl, dr)@@d.at
+  | VarD(v, t) ->
+    drop_subst v s, VarD(v, subst_exp_typ s t)@@d.at
+  | InclD(t) ->
+    if tail then s, InclD(subst_exp_typ s t)@@d.at
+    else error d.at "... only allowed at end inside rec"
+
+and subst_exp_exp s e =
+  (match e.it with
+  | VarE(v) -> subst_exp_var s v
+  | PrimE(s) -> PrimE(s)
+  | TypE(t) -> TypE(subst_exp_typ s t)
+  | PathE(e) -> PathE(subst_exp_exp s e)
+  | StrE(b) ->
+    let _, b = subst_exp_bind true s b in
+    StrE(b)
+  | FunE(v, t, e, i) ->
+    FunE(v, subst_exp_typ s t, subst_exp_exp (drop_subst v s) e, i)
+  | WrapE(v, t) -> wrapE(subst_exp_var s v@@e.at, subst_exp_typ s t)
+  | RollE(v, t) -> rollE(subst_exp_var s v@@e.at, subst_exp_typ s t)
+  | IfE(v, ec, ea) ->
+    ifE(subst_exp_var s v@@e.at, subst_exp_exp s ec, subst_exp_exp s ea)
+  | DotE(e, v) -> DotE(subst_exp_exp s e, v)
+  | AppE(vf, va) -> appE(subst_exp_var s vf@@e.at, subst_exp_var s va@@e.at)
+  | UnwrapE(v, t) -> unwrapE(subst_exp_var s v@@e.at, subst_exp_typ s t)
+  | UnrollE(v, t) -> unrollE(subst_exp_var s v@@e.at, subst_exp_typ s t)
+  | RecE(v, t, e) -> RecE(v, subst_exp_typ s t, subst_exp_exp ((v.it, VarE(v))::s) e)
+  | ImportE(p) -> ImportE(p)
+  | AnnotE(e, t) -> AnnotE(subst_exp_exp s e, subst_exp_typ s t)
+  )@@e.at
+
+and subst_exp_bind tail s b =
+  match b.it with
+  | EmptyB -> s, EmptyB@@b.at
+  | SeqB(bl, br) ->
+    let s, bl = subst_exp_bind false s bl in
+    let s, br = subst_exp_bind tail s br in
+    s, SeqB(bl, br)@@b.at
+  | VarB(v, e) ->
+    drop_subst v s, VarB(v, subst_exp_exp s e)@@b.at
+  | InclB(e) ->
+    if tail then s, InclB(subst_exp_exp s e)@@b.at
+    else error b.at "... only allowed at end inside rec"
+  | TypeAssertB(p, e) ->
+    s, TypeAssertB(p, subst_exp_exp s e)@@b.at
+
+let recB(b) =
+  let d = extract_sig_bind false b in
+  let r = uniq_var()@@b.at in
+  let rv = VarE(r)@@b.at in
+  let s = extract_subst rv d in
+  let b' = b |> map_bind (subst_exp_exp s) in
+  letB(VarB(r, RecE(r, StrT(d)@@b.at, StrE(b')@@b.at)@@b.at)@@b.at,
+       generalize_bind rv d)

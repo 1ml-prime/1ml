@@ -112,10 +112,14 @@ module Offside = struct
       if column < indent - 2 then error "offside" else
         emit token >>
         get >>= inside_braces break false indent
+    | AND ->
+      if column < indent then error "offside" else
+        emit token >>
+        get >>= inside_braces break false indent
     | _ ->
       if column < indent then error "offside" else
         emit_if (column = indent && insert) COMMA >>
-        nest (token, column) >>
+        nest false (token, column) >>
         get >>= inside_braces break (token <> LOCAL) indent
 
   and inside_local insert indent (token, column) =
@@ -132,7 +136,7 @@ module Offside = struct
         emit IN
       else
         emit_if (column = indent && insert) COMMA >>
-        nest (token, column) >>
+        nest false (token, column) >>
         get >>= inside_local (token <> LOCAL) indent
 
   and inside_let insert indent (token, column) =
@@ -151,12 +155,13 @@ module Offside = struct
         inside_in false column (token, column)
       else
         emit_if (column = indent && insert) COMMA >>
-        nest (token, column) >>
+        nest false (token, column) >>
         get >>= inside_let (token <> LOCAL) indent
 
   and inside_in insert indent (token, column) =
     match token with
-    | RBRACE | COMMA | IN | EOF | RPAR | ELSE | THEN -> unget (token, column)
+    | RBRACE | COMMA | IN | EOF | RPAR | ELSE | THEN | EQUAL ->
+      unget (token, column)
     | SEMI ->
       if column < indent - 2 then error "offside" else
         emit token >>
@@ -170,7 +175,7 @@ module Offside = struct
       let slack = slack_of token in
       if column < indent - slack then unget (token, column) else
         emit_if (slack = 0 && column = indent && insert) SEMI >>
-        nest (token, column) >>
+        nest true (token, column) >>
         get >>= inside_in (slack = 0 && indent <= column) indent
 
   and inside_parens indent (token, column) =
@@ -180,7 +185,7 @@ module Offside = struct
       emit token >>
       get >>= inside_parens indent
     | _ ->
-      nest (token, column) >>
+      nest true (token, column) >>
       get >>= inside_in false indent >>
       get >>= inside_parens indent
 
@@ -203,8 +208,8 @@ module Offside = struct
         emit ELSE >> emit LBRACE >> emit RBRACE >>
         unget (token, column)
 
-  and nest (token, column) =
-    (match token with FUN | REC | IF -> emit LPAR | _ -> unit) >>
+  and nest is_expr (token, column) =
+    (match token with (FUN | REC | IF) when is_expr -> emit LPAR | _ -> unit) >>
     emit token >>
     match token with
     | LBRACE ->
@@ -220,8 +225,10 @@ module Offside = struct
     | DARROW ->
       get >>= fun (token, column) ->
       inside_in false column (token, column) >>
-      emit RPAR
+      if is_expr then emit RPAR else unit
     | EQUAL | DO ->
+      get >>= fun (token, column) -> inside_in false column (token, column)
+    | TYPE_ERROR ->
       get >>= fun (token, column) -> inside_in false column (token, column)
     | IF ->
       inside_if column >>
@@ -278,6 +285,7 @@ rule token = parse
   | "import" { IMPORT }
   | "primitive" { PRIMITIVE }
   | "rec" { REC }
+  | "and" { AND }
   | "then" { THEN }
   | "type" { TYPE }
   | "with" { WITH }

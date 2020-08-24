@@ -226,48 +226,54 @@ type_error rec (R: {}) => {
   kaboom () = R
 }
 
-Kaboom = rec (R: rec R => {kaboom: () ~> R}) : (= R) => {kaboom () = R}
+rec Kaboom : rec R => {kaboom: () ~> R} = {kaboom () = Kaboom}
+
+rec isEven n = n == 0 || isOdd (n-1)
+and isOdd n = n == 1 || (n <> 0 && isEven (n-1))
 
 ;;
 
 Mutually = let
-  T = rec (R: {
-    Even: {type t _}
-    Odd: {type t _}
-  }) => {
-    Even = {
-      type t x = {head: x, tail: R.Odd.t x}
+  T = {
+    rec Even = {
+      type t x = {head: x, tail: Odd.t x}
     }
-    Odd = {
-      type t x = opt (R.Even.t x)
+    and Odd = {
+      type t x = opt (Even.t x)
     }
   }
 in {
-  ...rec (R: {
-    Even: {
-      size 'x: T.Even.t x ~> int
-    }
-    Odd: {
-      size 'x: T.Odd.t x ~> int
-    }
-  }) => {
-    Even = {
-      ...T.Even
-      make 'x (head: x) (tail: T.Odd.t x) : T.Even.t x =
-        {head, tail}
-      size 'x (v: T.Even.t x) = 1 + R.Odd.size v.tail
-    }
-    Odd = {
-      ...T.Odd
-      make 'x (v: opt (T.Even.t x)) : T.Odd.t x = v
-      size 'x (v: T.Odd.t x) =
-        v |> Opt.case {
-          none = 0
-          some e = R.Even.size e
-        }
-    }
+  rec Even = {
+    make head (tail: T.Odd.t _) : T.Even.t _ = {head, tail}
+    size (v: T.Even.t _) = 1 + Odd.size v.tail
+    ...T.Even
+  }
+  and Odd = {
+    make (v: opt (T.Even.t _)) : T.Odd.t _ = v
+    size (v: T.Odd.t _) =
+      v |> Opt.case {
+        none = 0
+        some = Even.size
+      }
+    ...T.Odd
   }
 
+(;
+  rec Even = {
+    type t x = {head: x, tail: Odd.t x}
+    make head (tail: Odd.t _) : t _ = {head, tail}
+    size (v: t _) = 1 + Odd.size v.tail
+  }
+  and Odd = {
+    type t x = opt (Even.t x)
+    make (v: opt (Even.t _)) : t _ = v
+    size (v: t _) =
+      v |> Opt.case {
+        none = 0
+        some = Even.size
+      }
+  }
+;)
   one = Odd.size (Odd.make (some (Even.make true (Odd.make none))))
 }
 
@@ -295,9 +301,9 @@ AnnotRecType = {
 }
 
 Hungry = {
-  type eat a = rec eat_a => a ~> eat_a
+  rec type eat a = a ~> eat a
 
-  eater 'a = rec (eater: eat a) : eat a => fun a => eater
+  rec eater 'a: eat a = fun a => eater
 
   do eater 1 2
   do eater 1 2 3
@@ -310,8 +316,8 @@ type_error rec {type t _, type u _} => {
 type_error type rec t => t
 
 PolyRec = {
-  type l a = rec (type t) => a | t
-  ...rec {type t a} => {type t a = a | t (a, a)}
+  rec type l a = a | l a
+  rec type t a = a | t (a, a)
 
   t_int = t int
 
@@ -333,7 +339,7 @@ ListN = let
     :: 'n : x ~> t x n ~> p (N.S n)
   }
 in {
-  ...rec {type t _ _} => {type t x n = wrap (type p _) -> I x p t ~> p n}
+  rec type t x n = wrap (type p _) -> I x p t ~> p n
 
   case 'x 'n (type p _) (cs: I x p t) (e : t _ _) =
     e p cs
@@ -351,9 +357,9 @@ in {
 
 ListN = {
   ...ListN
-  map 'x 'y (xy: x ~> y) = rec (map 'n: t x n ~> t y n) =>
+  rec map 'x 'y 'n (xy: x ~> y) : t x n ~> t y n =
     case (t _) {
       nil
-      x :: xs = xy x :: map xs
+      x :: xs = xy x :: map xy xs
     }
 }

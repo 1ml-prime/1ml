@@ -17,7 +17,7 @@ GADTs = {
         Succ       :      t int ~> case int
         Pair 'a 'b : t a ~> t b ~> case (a, b)
       }
-      ...rec {type t _} => {type t a = wrap (m: I t) ~> m.case a}
+      rec type t a = wrap (m: I t) ~> m.case a
       I = I t
     t
     case (m: I) (e: t _) = e m
@@ -67,4 +67,4 @@ FunctionalDependences = {
   combine 'a (f: T a) (g: T a) : T a = fun (type F _) => f F << g F
 }
 
-Newtype = rec {type T} => {type T = T ~> T}
+Newtype = {rec type T = T ~> T}

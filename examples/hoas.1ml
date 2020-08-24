@@ -17,7 +17,7 @@ let
   type J (type t _) = {type case _, ...I case t}
   type T (type t _) x = (c: J t) ~> c.case x
   ...{
-    ...rec {type t _} => {type t x = wrap T t x}
+    rec type t x = wrap T t x
     case 'x (type case _) (cs: I case t) (e: t _) = e {case, ...cs}
     mk (fn: T t _) = fn
   } :> {
@@ -41,7 +41,7 @@ Fact = Fix <| Lam fun f => Lam fun x =>
      (Val 1)
      (Bin (*) x (App f (Bin (-) x (Val 1))))
 
-eval = rec (eval 'x: t x ~> x) => case (type fun t => t) {
+rec eval 'x: t x ~> x = case (type fun t => t) {
   Bin f x y = f (eval x) (eval y)
   If b c a = eval if eval b then c else a
   App f x = eval f (eval x)

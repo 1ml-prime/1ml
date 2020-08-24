@@ -7,18 +7,15 @@ isNil = case {nil = true, _::_ = false}
 head = case {nil = none, x::_ = some x}
 tail = case {nil = none, _::xs = some xs}
 
-foldr (::) nil = rec loop => case {nil, x::xs = x::loop xs}
+rec foldr (::) nil = case {nil, x::xs = x::foldr (::) nil xs}
 
-foldl xss = rec (loop: _ -> _) => fun s => case {
-  nil = s
-  x :: xs = loop (xss x s) xs
-}
+rec foldl (::) nil = case {nil, x::xs = foldl (::) (x::nil) xs}
 
 length = foldl (const 1 >> (+)) 0
 
-nth = rec (loop: _ -> _) => fun n => case {
+rec nth n = case {
   nil = none
-  x :: xs = if n == 0 then some x else loop (n-1) xs
+  x :: xs = if n == 0 then some x else nth (n-1) xs
 }
 
 revPrependTo = foldl (::)
